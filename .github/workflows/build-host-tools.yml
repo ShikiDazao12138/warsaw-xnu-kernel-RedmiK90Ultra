@@ -1,0 +1,72 @@
+name: build host tools
+
+# Two small host-side binaries that are needed to assemble the iOS 26 system
+# image on a Windows build host. Neither job carries any Apple firmware or
+# extracted iOS files: job 1 compiles our own LZBITMAP helper, job 2 compiles
+# our own userland sources against Xcode's iPhoneOS SDK.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-host-tools.yml'
+
+jobs:
+  unzbm-windows:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mingw-w64
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gcc-mingw-w64-x86-64
+      - name: Build unzbm.exe
+        run: |
+          set -e
+          cd xnu-deps/build/lzbitmap
+          x86_64-w64-mingw32-gcc -O2 -static -Wall -o unzbm.exe unzbm.c libzbitmap.c
+          ls -l unzbm.exe
+          x86_64-w64-mingw32-objdump -f unzbm.exe | head -8
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unzbm-windows
+          path: xnu-deps/build/lzbitmap/unzbm.exe
+          if-no-files-found: error
+
+  arm64e-userland:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Select Xcode
+        run: |
+          ls -d /Applications/Xcode_*.app || true
+          sudo xcode-select -s /Applications/Xcode_26.3.app 2>/dev/null || \
+          sudo xcode-select -s /Applications/Xcode_26.2.app 2>/dev/null || true
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+      - name: Fetch userland sources
+        run: git clone --depth 1 --branch k90-port https://github.com/iola1999/hackios-xnu-userland.git /tmp/u
+      - name: Compile the arm64e programs
+        run: |
+          set -e
+          cd /tmp/u/userland
+          mkdir -p obj
+          CC="/usr/bin/xcrun -sdk iphoneos clang -arch arm64e -miphoneos-version-min=26.0"
+          $CC -Os -Wall -Wextra -framework CoreFoundation -framework IOKit \
+              src/input26_service.c -o obj/input26-service
+          /usr/bin/codesign --force --sign - --entitlements src/input26_service.entitlements obj/input26-service
+          $CC -dynamiclib -install_name /redwood/lib/libredwood-sb26.dylib -Os -Wall -Wextra \
+              -framework CoreFoundation -framework Metal -lobjc -lMobileGestalt \
+              src/inject_sb26.c src/inject_sb26_layers.c src/inject_sb26_rate.c src/inject_posterboard.c \
+              -o obj/libredwood-sb26.dylib
+          /usr/bin/codesign --force --sign - obj/libredwood-sb26.dylib
+          $CC -dynamiclib -install_name /redwood/lib/libredwood-sbmetal-experiment.dylib \
+              -Os -fno-objc-arc -Wall -Wextra \
+              -framework Foundation -framework Metal -framework UIKit -framework IOKit -lobjc \
+              src/sb_metal_experiment.m -o obj/libredwood-sbmetal-experiment.dylib
+          /usr/bin/codesign --force --sign - obj/libredwood-sbmetal-experiment.dylib
+          ls -l obj/
+          for f in obj/*; do printf '%s ' "$f"; otool -hv "$f" 2>/dev/null | tail -1; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arm64e-progs
+          path: /tmp/u/userland/obj/
+          if-no-files-found: error
