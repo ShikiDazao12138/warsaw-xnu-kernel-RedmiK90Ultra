@@ -75,3 +75,4 @@
 73-san%memory%ubsan_minimal.c.patch
 74-osfmk%vm%vm_memory_entry.c.patch
 75-osfmk%vm%vm_map_store.c.patch
+78-bsd-conf-files-annibale-av.patch
