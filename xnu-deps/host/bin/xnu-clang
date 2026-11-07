@@ -1,0 +1,32 @@
+#!/bin/bash
+# clang wrapper for cross-building XNU on Linux:
+#  - forces an Apple Mach-O target (stock Linux clang defaults to ELF)
+#  - drops flags only Apple's clang understands
+#  - links with the cctools ld64
+HB="$(cd "$(dirname "$0")" && pwd)"
+case "$(basename "$0")" in *++) drv=clang++; extra=(-fno-use-cxa-atexit);; *) drv=clang; extra=();; esac
+# -ftrivial-auto-var-init=zero wants the long opt-in flag on clang 11..19 and none on 20+; ask our
+# compiler once and remember its answer
+probe=/tmp/.xnu-clang-varinit.$(id -u).$drv
+if [ ! -f "$probe" ]; then
+  if echo 'int f(void){return 0;}' | /usr/bin/$drv -x c -c - -o /dev/null -ftrivial-auto-var-init=zero -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang 2>/dev/null; then
+    echo keep > "$probe"
+  else
+    echo drop > "$probe"
+  fi
+fi
+keep_init_flag=$(cat "$probe")
+args=()
+for a in "$@"; do
+  case "$a" in
+    -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang) [ "$keep_init_flag" = keep ] && args+=("$a");;
+    -fapple-kext-vtable-verify|-Wno-vla-cxx-extension) ;;
+    -Werror|-Werror=*|-Weverything|-pedantic-errors) ;;
+    *) args+=("$a");;
+  esac
+done
+# setup.sh links the cctools ld64 here on Linux; on macOS Xcode's ld is that linker
+ld="$HB/ld64"
+[ -e "$ld" ] || [ "$(uname -s)" != Darwin ] || ld=/usr/bin/ld
+exec /usr/bin/$drv -include "$HB/../../hostinc/xnu_clang_compat.h" -target arm64-apple-ios${XNU_SDK_VERSION:-16.5} --ld-path="$ld" \
+  -w "${extra[@]}" "${args[@]}"
