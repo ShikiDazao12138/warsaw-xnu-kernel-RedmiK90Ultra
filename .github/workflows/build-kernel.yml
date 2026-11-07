@@ -1,0 +1,154 @@
+name: Build XNU 12377 kernel (iOS 26)
+
+# 目的：完全不在本机装 macOS，也能拿到 mach.development.bcm2837。
+# 这里用的是 GitHub 自己提供的 macOS 虚拟机（Xcode 已装好，含 iPhoneOS SDK、mig、iig、libtool、
+# lipo、strip、docc、dsymutil 全套），所以 xnu26/build-macos.sh 一行都不用改。
+#
+# 用法（全程在 Windows 上操作）：
+#   1. 把这个仓库推到你自己的 GitHub 私有仓库（XNU 是 APSL-2.0，可再分发；私有更保险）
+#      注意：推送 .github/workflows/ 需要带 workflow scope 的 token，否则会被拒；
+#      `gh auth refresh -h github.com -s workflow` 或直接用 classic token 勾上 workflow
+#   2. 仓库页面 → Actions → "Build XNU 12377 kernel (iOS 26)" → Run workflow
+#   3. 跑完在页面底部下载 artifact "mach.development.bcm2837"
+#   4. 放回本机：hackios/hackios-xnu-kernel/prebuilt/（名字保持不变）
+#
+# 为什么必须是 macOS、不能在 WSL 里编（别人的实测结论，不是推测）：
+#   - Ubuntu 的 clang 18/19/20 认识 __builtin_ptrauth_* 这些名字，但没有实现，
+#     任何 target/-march 都报 "this target does not support pointer authentication"（arm64e 必需）
+#   - iig 闭源，iOS 26 的 dispatch（Panic / SetPowerOverride）需要真的那一个
+#   - xnu-12377 的 upsi.h 里写着 #error upsi.h is XNU private，Linux 上 stage2 直接停
+#   参照实现：kusesad-1122/hackios-dodge 的 .github/workflows/build-kernel.yml（同 SoC、12377）
+#
+# 免费额度：私有仓库每月 2000 分钟；这个构建约 20–40 分钟，够跑几十次。公开仓库不限。
+
+on:
+  workflow_dispatch:
+    inputs:
+      machine:
+        description: 'MACHINE（设备代号，warsaw/annibale 都是 BCM2837）'
+        required: false
+        default: BCM2837
+      kconfig:
+        description: 'KERNEL_CONFIG'
+        required: false
+        default: DEVELOPMENT
+  push:
+    branches: [main, master, k90-port]
+    paths:
+      - 'xnu26/**'
+      - 'xnu/**'
+      - '.github/workflows/build-kernel.yml'
+
+jobs:
+  kernel:
+    # macos-15 = Xcode 16。macos-14 只有 Xcode 15.4，它的 MacOSX SDK 没有
+    # usr/local/libexec/availability.pl，而 bsd/sys/Makefile 要用它生成 _symbol_aliasing.h。
+    # （这两条是从 kusesad-1122/hackios-dodge 实测过的工作流里学到的，不是猜的。）
+    runs-on: macos-15
+    timeout-minutes: 150
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # macos-15 的默认 Xcode 是 16.4，而 12377 出自 macOS 26.5 那一代：换到 26.3 再开工。
+      # （runner 镜像里 26.3/26.2/26.1.1/26.0.1 都在 /Applications，见 macos-15-Readme.md）
+      - name: 选用 Xcode 26.3
+        run: |
+          ls -d /Applications/Xcode*.app
+          sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          xcrun --sdk iphoneos -find iig
+
+      # 仓库里带了 CRLF 会毁掉补丁；macOS runner 默认是 input，仍然显式关掉
+      - name: 关掉 autocrlf
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - name: 确保 gmake / unifdef
+        run: |
+          command -v gmake || brew install make
+          command -v unifdef || brew install unifdef
+
+      # 先证明这台 runner 真的具备全部工具，失败要失败在前面而不是编译到一半
+      - name: 环境自检
+        run: |
+          echo "--- Xcode ---"
+          xcodebuild -version
+          echo "--- iPhoneOS SDK ---"
+          xcrun --sdk iphoneos --show-sdk-version
+          xcrun --sdk iphoneos --show-sdk-path
+          echo "--- makefile 会通过 -find 请求的工具 ---"
+          miss=0
+          for t in clang clang++ mig migcom iig docc libtool lipo strip nm nmedit otool \
+                   objdump dsymutil codesign_allocate ctfconvert gm4 bison flex unifdef \
+                   python3 scan-build git; do
+            p=$(xcrun -sdk iphoneos -find "$t" 2>/dev/null || true)
+            if [ -n "$p" ]; then printf '  %-20s %s\n' "$t" "$p"; else printf '  %-20s MISSING\n' "$t"; miss=$((miss+1)); fi
+          done
+          echo "缺少 $miss 个（ctf* 与 docc 允许缺：构建时 DO_CTFMERGE=0）"
+          gmake --version | head -1
+          python3 --version
+          sw_vers
+
+      - name: 取 XNU 12377 源码并打 77 个补丁
+        run: bash xnu26/apply.sh
+
+      - name: 确认补丁全部落地（预期 225 个改动文件 / 58 个 redwood 文件）
+        run: |
+          D=xnu-src/xnu-12377.121.6
+          echo "改动文件: $(git -C $D status --porcelain | wc -l)"
+          echo "redwood 文件: $(find $D -name 'redwood*' -not -path '*/.git/*' | wc -l)"
+          git -C $D log --oneline -1
+
+      - name: 依赖 stage1（Apple 开源源码 + 由 SDK 拼出的 iPhoneOS.sdk）
+        run: bash xnu26/deps-macos.sh --stage1
+
+      # deps-macos.sh 只把 availability.pl 放进 iPhoneOS 那份 SDK；
+      # bsd/sys/Makefile 要的是 MacOSX SDK 里的那一份。缺了会在生成 _symbol_aliasing.h 时失败。
+      - name: 把 availability.pl 补进 MacOSX SDK
+        run: |
+          AP=xnu-deps/26/sdk/iPhoneOS.sdk/usr/local/libexec/availability.pl
+          [ -x "$AP" ] || { echo "::error::deps --stage1 没有生成 availability.pl"; exit 1; }
+          HOST_SDK=$(xcrun --sdk macosx --show-sdk-path)
+          echo "host SDK: $HOST_SDK"
+          sudo mkdir -p "$HOST_SDK/usr/local/libexec" 2>/dev/null || mkdir -p "$HOST_SDK/usr/local/libexec"
+          sudo cp -f "$AP" "$HOST_SDK/usr/local/libexec/availability.pl" 2>/dev/null \
+            && echo "已装入 $HOST_SDK" || echo "::warning::写不进 MacOSX SDK，若后面 bsd/sys 失败就是这个原因"
+
+      - name: 导出内核头
+        run: bash xnu26/build-macos.sh exporthdrs installhdrs
+
+      - name: 依赖 stage2（libfirehose_kernel.a / libpthread_kext.a）
+        run: bash xnu26/deps-macos.sh --stage2
+
+      - name: 编内核
+        env:
+          MACHINE: ${{ inputs.machine || 'BCM2837' }}
+          KERNEL_CONFIG: ${{ inputs.kconfig || 'DEVELOPMENT' }}
+        run: |
+          time bash xnu26/build-macos.sh
+          # 真实产物路径是 BUILD/obj/<KCONFIG>_ARM64_<MACHINE>/mach.development.bcm2837，这里直接找出来
+          find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.*' -type f -exec ls -la {} \;
+
+      - name: 产物清单与校验
+        run: |
+          K=$(find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.development.bcm2837' -type f | head -1)
+          [ -n "$K" ] || { echo "没有编出 mach.development.bcm2837"; exit 1; }
+          echo "产物: $K"
+          ls -la "$K"
+          shasum -a 256 "$K"
+          otool -hv "$K" | head -4
+          echo "--- 平台字符串（应出现 annibale/redwood 之类，供核对）---"
+          strings -a "$K" | grep -E '^(annibale|redwood|warsaw|qemu)$' | sort -u || true
+          echo "--- Darwin 版本 ---"
+          strings -a "$K" | grep -m1 'Darwin Kernel Version'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mach.development.bcm2837
+          path: xnu-src/xnu-12377.121.6/BUILD/obj/**/mach.development.bcm2837
+          if-no-files-found: error
+          compression-level: 9
+          retention-days: 30
