@@ -66,10 +66,18 @@ jobs:
           git config --global core.autocrlf false
           git config --global core.eol lf
 
-      - name: 确保 gmake / unifdef
+      - name: 确保 gmake / unifdef / nproc
         run: |
           command -v gmake || brew install make
           command -v unifdef || brew install unifdef
+          # macOS 没有 nproc，而 xnu 的 makedefs 用它算 --jobs：取到空值就成了裸 -j，
+          # gmake 会打印用法直接退出（实测首轮就是这样死在 exporthdrs 上的）。
+          if ! command -v nproc >/dev/null 2>&1; then
+            printf '#!/bin/sh\nsysctl -n hw.ncpu\n' | sudo tee /opt/homebrew/bin/nproc >/dev/null
+            sudo chmod +x /opt/homebrew/bin/nproc
+          fi
+          echo "nproc = $(nproc)"
+          echo "gmake = $(gmake --version | head -1)"
 
       # 先证明这台 runner 真的具备全部工具，失败要失败在前面而不是编译到一半
       - name: 环境自检
