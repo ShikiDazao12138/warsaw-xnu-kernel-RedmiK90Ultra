@@ -1,0 +1,250 @@
+    };
+}
+2026-11-07 14:46:13.172990+0000 lsd[50:353] [default] Extension point (null) not in the binding map, scanning all extension points
+2026-11-07 14:46:13.173105+0000 lsd[50:353] [registration] Failed to fetch app bundle unit: 0 for extension point: com.apple.extensionkit.app-extension-management
+2026-11-07 14:46:13.173173+0000 lsd[50:353] [default] Extension point (null) not in the binding map, scanning all extension points
+2026-11-07 14:46:13.173283+0000 lsd[50:353] [registration] Registering extension point: com.apple.appintents-extension platform: 11 declaring framework: file:///System/Library/ExtensionKit/ExtensionPoints/AppIntents.appexpt SDK: {
+    EXConnectionHandlerClass = LNExtensionConnectionHandler;
+    EXExtensionPointConfiguration =     {
+    };
+    EXExtensionPointIsPublic = 1;
+    EXPresentsUserInterface = 0;
+    EXRequiredEntitlements =     {
+        "com.apple.private.appintents.extension-host" = 1;
+    };
+    EXRequiresLegacyInfrastructure = 0;
+    EXSettingsEnablementUIHidden = 1;
+    EXSupportedPlatforms =     (
+        iOS,
+        macOS,
+        macCatalyst,
+        watchOS,
+        tvOS,
+        xrOS
+    );
+    EXSupportsCatalyst = 1;
+    EXTCCPolicy = "prompt-container-personality";
+    NSExtension =     {
+        NSExtensionAttributes =         {
+            NSExtensionPointName = "com.apple.appintents-extension";
+            NSExtensionPointVersion = "1.0";
+        };
+        NSExtensionPointIdentifier = "com.apple.appintents-extension";
+        NSExtensionPrincipalClassProhibited = 1;
+    };
+}
+2026-11-07 14:46:13.173363+0000 lsd[50:353] [default] Extension point (null) not in the binding map, scanning all extension points
+2026-11-07 14:46:13.173507+0000 lsd[50:353] [registration] Failed to fetch app bundle unit: 0 for extension point: com.apple.appintents-extension
+2026-11-07 14:46:13.173561+0000 lsd[50:353] [default] Extension point com.apple.appintents-extension not in the binding map, scanning all extension points
+2026-11-07 14:46:13.173668+0000 lsd[50:353] [registration] Registering extension point: com.apple.appintents-extension platform: 3 declaring framework: file:///System/Library/ExtensionKit/ExtensionPoints/AppIntents.appexpt SDK: {
+    EXConnectionHandlerClass = LNExtensionConnectionHandler;
+    EXExtensionPointConfiguration =     {
+    };
+    EXExtensionPointIsPublic = 1;
+    EXPresentsUserInterface = 0;
+    EXRequiredEntitlements =     {
+        "com.apple.private.appintents.extension-host" = 1;
+    };
+    EXRequiresLegacyInfrastructure = 0;
+    EXSettingsEnablementUIHidden = 1;
+    EXSupportedPlatforms =     (
+        iOS,
+        macOS,
+        macCatalyst,
+        watchOS,
+        tvOS,
+        xrOS
+    );
+    EXSupportsCatalyst = 1;
+    EXTCCPolicy = "prompt-container-personality";
+    NSExtension =     {
+        NSExtensionAttributes =         {
+            NSExtensionPointName = "com.apple.appintents-extension";
+            NSExtensionPointVersion = "1.0";
+        };
+        NSExtensionPointIdentifier = "com.apple.appintents-extension";
+        NSExtensionPrincipalClassProhibited = 1;
+    };
+}
+2026-11-07 14:46:13.173765+0000 lsd[50:353] [default] Extension point com.apple.appintents-extension not in the binding map, scanning all extension points
+2026-11-07 14:46:13.173899+0000 lsd[50:353] [registration] Failed to fetch app bundle unit: 0 for extension point: com.apple.appintents-extension
+2026-11-07 14:46:13.173950+0000 lsd[50:353] [default] Extension point com.apple.appintents-extension not in the binding map, scanning all extension points
+2026-11-07 14:46:13.174056+0000 lsd[50:353] [registration] Registering extension point: com.apple.appintents-extension platform: 6 declaring framework: file:///System/Library/ExtensionKit/ExtensionPoints/AppIntents.appexpt SDK: {
+    EXConnectionHandlerClass = LNExtensionConnectionHandler;
+    EXExtensionPointConfiguration =     {
+    };
+    EXExtensionPointIsPublic = 1;
+    EXPresentsUserInterface = 0;
+    EXRequiredEntitlements =     {
+        "com.apple.private.appintents.extension-host" = 1;
+    };
+    EXRequiresLegacyInfrastructure = 0;
+    EXSettingsEnablementUIHidden = 1;
+    EXSupportedPlatforms =     (
+        iOS,
+        macOS,
+        macCatalyst,
+        watchOS,
+        tvOS,
+        xrOS
+    );
+    EXSupportsCatalyst = 1;
+    EXTCCPolicy = "prompt-container-personality";
+    NSExtension =     {
+        NSExtensionAttributes =         {
+            NSExtensionPointName = "com.apple.appintents-extension";
+            NSExtensionPointVersion = "1.0";
+        };
+        NSExtensionPointIdentifier = "com.apple.appintents-extension";
+        NSExtensionPrincipalClassProhibited = 1;
+    };
+}
+2026-11-07 14:46:13.174137+0000 lsd[50:353] [default] Extension point com.apple.appintents-extension not in the binding map, scanning all extension points
+2026-11-07 14:46:13.174265+0000 lsd[50:353] [registration] Failed to fetch app bundle unit: 0 for extension point: com.apple.appintents-extension
+2026-11-07 14:46:13.174315+0000 lsd[50:353] [default] Extension point com.apple.appintents-extension not in the binding map, scanning all extension points
+2026-11-07 14:46:13.174419+0000 lsd[50:353] [registration] Registering extension point: com.apple.appintents-extension platform: 2 declaring framework: file:///System/Library/ExtensionKit/ExtensionPoints/AppIntents.appexpt SDK: {
+    EXConnectionHandlerClass = LNExtensionConnectionHandler;
+    EXExtensionPointConfiguration =     {
+    };
+    EXExtensionPointIsPublic = 1;
+    EXPresentsUserInterface = 0;
+    EXRequiredEntitlements =     {
+        "com.apple.private.appintents.extension-host" = 1;
+    };
+    EXRequiresLegacyInfrastructure = 0;
+    EXSettingsEnablementUIHidden = 1;
+    EXSupportedPlatforms =     (
+        iOS,
+        macOS,
+        macCatalyst,
+        watchOS,
+        tvOS,
+        xrOS
+    );
+    EXSupportsCatalyst = 1;
+    EXTCCPolicy = "prompt-container-personality";
+    NSExtension =     {
+        NSExtensionAttributes =         {
+            NSExtensionPointName = "com.apple.appintents-extension";
+            NSExtensionPointVersion = "1.0";
+        };
+        NSExtensionPointIdentifier = "com.apple.appintents-extension";
+        NSExtensionPrincipalClassProhibited = 1;
+    };
+}
+2026-11-07 14:46:13.174500+0000 lsd[50:353] [default] Extension point com.apple.appintents-extension not in the binding map, scanning all extension points
+2026-11-07 14:46:13.174627+0000 lsd[50:353] [registration] Failed to fetch app bundle unit: 0 for extension point: com.apple.appintents-extension
+2026-11-07 14:46:13.174677+0000 lsd[50:353] [default] Extension point com.apple.appintents-extension not in the binding map, scanning all extension points
+2026-11-07 14:46:13.174780+0000 lsd[50:353] [registration] Registering extension point: com.apple.appintents-extension platform: 1 declaring framework: file:///System/Library/ExtensionKit/ExtensionPoints/AppIntents.appexpt SDK: {
+    EXConnectionHandlerClass = LNExtensionConnectionHandler;
+    EXExtensionPointConfiguration =     {
+    };
+    EXExtensionPointIsPublic = 1;
+    EXPresentsUserInterface = 0;
+    EXRequiredEntitlements =     {
+        "com.apple.private.appintents.extension-host" = 1;
+    };
+    EXRequiresLegacyInfrastructure = 0;
+    EXSettingsEnablementUIHidden = 1;
+    EXSupportedPlatforms =     (
+        iOS,
+        macOS,
+        macCatalyst,
+        watchOS,
+        tvOS,
+        xrOS
+    );
+    EXSupportsCatalyst = 1;
+    EXTCCPolicy = "prompt-container-personality";
+    NSExtension =     {
+        NSExtensionAttributes =         {
+            NSExtensionPointName = "com.apple.appintents-extension";
+            NSExtensionPointVersion = "1.0";
+        };
+        NSExtensionPointIdentifier = "com.apple.appintents-extension";
+        NSExtensionPrincipalClassProhibited = 1;
+    };
+}
+2026-11-07 14:46:13.174876+0000 lsd[50:353] [default] Extension point com.apple.appintents-extension not in the binding map, scanning all extension points
+2026-11-07 14:46:13.175003+0000 lsd[50:353] [registration] Failed to fetch app bundle unit: 0 for extension point: com.apple.appintents-extension
+2026-11-07 14:46:13.175054+0000 lsd[50:353] [default] Extension point com.apple.appintents-extension not in the binding map, scanning all extension points
+2026-11-07 14:46:13.175159+0000 lsd[50:353] [registration] Registering extension point: com.apple.appintents-extension platform: 4 declaring framework: file:///System/Library/ExtensionKit/ExtensionPoints/AppIntents.appexpt SDK: {
+    EXConnectionHandlerClass = LNExtensionConnectionHandler;
+    EXExtensionPointConfiguration =     {
+    };
+    EXExtensionPointIsPublic = 1;
+    EXPresentsUserInterface = 0;
+    EXRequiredEntitlements =     {
+        "com.apple.private.appintents.extension-host" = 1;
+    };
+    EXRequiresLegacyInfrastructure = 0;
+    EXSettingsEnablementUIHidden = 1;
+    EXSupportedPlatforms =     (
+        iOS,
+        macOS,
+        macCatalyst,
+        watchOS,
+        tvOS,
+        xrOS
+    );
+    EXSupportsCatalyst = 1;
+    EXTCCPolicy = "prompt-container-personality";
+    NSExtension =     {
+        NSExtensionAttributes =         {
+            NSExtensionPointName = "com.apple.appintents-extension";
+            NSExtensionPointVersion = "1.0";
+        };
+        NSExtensionPointIdentifier = "com.apple.appintents-extension";
+        NSExtensionPrincipalClassProhibited = 1;
+    };
+}
+2026-11-07 14:46:13.175239+0000 lsd[50:353] [default] Extension point com.apple.appintents-extension not in the binding map, scanning all extension points
+2026-11-07 14:46:13.175367+0000 lsd[50:353] [registration] Failed to fetch app bundle unit: 0 for extension point: com.apple.appintents-extension
+2026-11-07 14:46:13.175428+0000 lsd[50:353] [default] Extension point (null) not in the binding map, scanning all extension points
+2026-11-07 14:46:13.175531+0000 lsd[50:353] [registration] Registering extension point: com.apple.amsutility-extension platform: 2 declaring framework: file:///System/Library/PrivateFrameworks/AppleMediaServicesUI.framework SDK: {
+    EXExtensionPointConfiguration =     {
+    };
+    EXExtensionPointIdentifier = "com.apple.amsutility-extension";
+    EXExtensionPointIsPublic = 0;
+    EXPresentsUserInterface = 0;
+    EXRequiredEntitlements =     {
+        "com.apple.private.applemediaservices" = 1;
+    };
+    EXRequiresLegacyInfrastructure = 0;
+    EXSupportsCatalyst = 1;
+    NSExtension =     {
+        NSExtensionAttributes =         {
+            NSExtensionPointName = "com.apple.amsutility-extension";
+            NSExtensionPointVersion = "1.0";
+        };
+        NSExtensionPointIdentifier = "com.apple.amsutility-extension";
+        NSExtensionPrincipalClassProhibited = 1;
+    };
+    "com.apple.private.applemediaservices" = 1;
+}
+2026-11-07 14:46:13.175607+0000 lsd[50:353] [default] Extension point (null) not in the binding map, scanning all extension points
+2026-11-07 14:46:13.175754+0000 lsd[50:353] [registration] Failed to fetch app bundle unit: 0 for extension point: com.apple.amsutility-extension
+2026-11-07 14:46:13.175812+0000 lsd[50:353] [default] Extension point (null) not in the binding map, scanning all extension points
+2026-11-07 14:46:13.175905+0000 lsd[50:353] [registration] Registering extension point: com.apple.marketplace.extension platform: 2 declaring framework: file:///System/Library/ExtensionKit/ExtensionPoints/com.apple.marketplace.extension.appexpt SDK: {
+    EXExtensionPointConfiguration =     {
+    };
+    EXExtensionPointIsPublic = 1;
+    EXPresentsUserInterface = 0;
+    EXRequiredEntitlements =     {
+        "com.apple.private.marketplace-extension-host" = 1;
+    };
+    EXRequiresLegacyInfrastructure = 0;
+    EXSupportedPlatforms =     (
+        iOS
+    );
+    NSExtension =     {
+        NSExtensionAttributes =         {
+            NSExtensionPointName = "com.apple.marketplace.extension";
+            NSExtensionPointVersion = "1.0";
+        };
+        NSExtensionPointIdentifier = "com.apple.marketplace.extension";
+        NSExtensionPrincipalClassProhibited = 1;
+    };
+}
+2026-11-07 14:46:13.175972+0000 lsd[50:353] [default] Extension point (null) not in the binding map, scanning all extension points
+Binary file (standard input) matches
