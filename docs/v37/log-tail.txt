@@ -1,0 +1,400 @@
+  brw-r-----  1        0 /dev/ufs_fsc
+  crw-r-----  1        0 /dev/rufs_fsc
+  brw-r-----  1        0 /dev/ufs_persist
+  crw-r-----  1        0 /dev/rufs_persist
+  brw-r-----  1        0 /dev/disk0
+  crw-r-----  1        0 /dev/rdisk0
+  brw-r-----  1        0 /dev/disk0s1
+  crw-r-----  1        0 /dev/rdisk0s1
+  brw-r-----  1        0 /dev/disk1
+  crw-r-----  1        0 /dev/rdisk1
+  brw-r-----  1        0 /dev/disk1s1
+  crw-r-----  1        0 /dev/rdisk1s1
+  brw-r-----  1        0 /dev/disk1s2
+  crw-r-----  1        0 /dev/rdisk1s2
+  brw-r-----  1        0 /dev/disk1s3
+  crw-r-----  1        0 /dev/rdisk1s3
+  brw-r-----  1        0 /dev/disk2
+  crw-r-----  1        0 /dev/rdisk2
+  brw-r-----  1        0 /dev/disk2s1
+  crw-r-----  1        0 /dev/rdisk2s1
+  brw-r-----  1        0 /dev/disk3
+  crw-r-----  1        0 /dev/rdisk3
+  brw-r-----  1        0 /dev/disk3s1
+  crw-r-----  1        0 /dev/rdisk3s1
+  crw-rw-rw-  1        0 /dev/redwood-audio
+  crw-rw-rw-  1        0 /dev/redwood-camera
+  crw-rw-rw-  1        0 /dev/annibale-iris
+[ ok ] devfs is mounted on /dev
+[ ok ] /dev/zero
+[ ok ] /dev/null
+  /dev/random: 72 8a a0 9d 71 67 d3 7e c0 8a 15 43 2a bd 5d 19
+[ ok ] /dev/random
+
+-- time --
+  slept 200 ms, the clock advanced 205 ms
+[ ok ] sleep and wall clock agree
+
+=== 36 checks, 0 failed ===
+init: library insertion: /redwood/lib/libredwood-sb26.dylib SpringBoard Preferences
+init: up to 32768 vnodes
+
+=== /redwood/etc/rc ===
+
+$ exec /redwood/sbin/launchd.ios
+Darwin Ignition Sequence Version 1.0.0: Thu Jul 30 11:49:13 PDT 2026; root:libignition-58~38604/libignition_core/RELEASE_ARM64E
+libignition: 1: arguments           :
+libignition: 1:   ignition level    : 0x5
+libignition: 1:   force dylib root  : 0x0
+libignition: 1:   halt after stage  : n/a
+libignition: 1: ignition blob not available
+libignition: 1: configuration         :
+libignition: 1:   program             : launchd.ios
+libignition: 1:   os environment      : n/a
+libignition: 1:   rd                  : n/a
+libignition: 1:   arp0                : n/a
+libignition: 1:   rp                  : n/a
+libignition: 1:   pivot src           : n/a
+libignition: 1:   root ramdisk        : 0x0
+libignition: 1:   restore             : 0x0
+libignition: 1:   root device info    : 0x0
+libignition: 1:   can haz debugger    : 0x1
+libignition: 1:   rootfs mount flags  : 0x4005001
+libignition: 1:   ecid                : 0x0
+libignition: 1:   hardware target     : v57ap
+libignition: 1:   initproc            : 0x1
+libignition: 1:   single user         : 0x0
+libignition: 1:   userspace reboot    : 0x0
+libignition: 1:   secure boot level   : 0x0
+libignition: 1:   os version          : n/a
+libignition: 1: parameters          :
+libignition: 1:   version           : 0x1
+libignition: 1:   argc              : 0x1
+libignition: 1:   log fd            : 0xffffffffffffffff
+libignition: 1:   platform          : 0x2
+libignition: 1: boot spec           :
+libignition: 1:   name              : local
+libignition: 1:   stage count       : 0x7
+libignition: 1:        hello: commence primary ignition
+libignition: 1:        hello: hello from launchd.ios.1
+libignition: 1:      preboot: mounting preboot
+libignition: 1: failed to lookup preboot: 25
+libignition: 1:      preboot: failed to get preboot device: 25
+libignition: 1:      preboot: ignition failed: 25
+libignition: 1: ignition boot failed: 25
+ignite() returned 25
+launchd.ios[1] triggered unnest of range 0x1e6400000->0x1e8600000 of DYLD shared region in VM map 0xf7ecfc53b936fe55. While not abnormal for debuggers, this increases system memory footprint almost permanently (until the shared region is re-slid).
+com.apple.xpc.launchd|1970-01-01 00:03:16.979020 <Notice>: hello, launchd UUID: 162D1085-1171-34C7-A7AC-F2805371BFAB
+com.apple.xpc.launchd|1970-01-01 00:03:17.019051 <Notice>: no mach port for persistent services: 2
+com.apple.xpc.launchd|1970-01-01 00:03:17.019107 <Notice>: Darwin Bootstrapper Version 7.0.0: Thu Jul 30 14:35:16 PDT 2026; root:libxpc_executables-3102.160.5~128/launchd/RELEASE_ARM64E
+com.apple.xpc.launchd|1970-01-01 00:03:17.019189 <Notice>: boot-args = debug=0x8 hv_wdt_pet=1 ufs_shared_pa=0x00000000d1ac9000 battery_shared_pa=0x00000000d18bd000 debug=0x10e rootdev=md0 launchd_unsecure_cache=1 panic_on_crash_disabled=1 cpus=7 bootcpu=7 small_cores_after=0 adreno8=23 adreno8_pause=0 adreno8_fine=0 adreno8_watch=0 adreno8_keep=1 adreno8_return=0 adreno8_speed=14 adreno8_secure_preflight=4 touchscreen=2 buttons=1 battery=1 gpu_coherent=1 metal=1 cpufreq=1 fb_threads=2 fb_flip=2 applog=2
+com.apple.xpc.launchd|1970-01-01 00:03:17.024118 (system) <Notice>: entering ondemand mode
+com.apple.xpc.launchd|1970-01-01 00:03:17.025073 (system) <Notice>: created
+skip attaching fsw to lo0 using legacy TX model
+com.apple.xpc.launchd|1970-01-01 00:03:17.026295 (exclaves-boot) <Notice>: Doing boot task
+com.apple.xpc.launchd|1970-01-01 00:03:17.026442 (fsck) <Notice>: Doing boot task
+fsck[5] triggered unnest of range 0x1e6400000->0x1e8600000 of DYLD shared region in VM map 0xf7ecfc53b93703a5. While not abnormal for debuggers, this increases system memory footprint almost permanently (until the shared region is re-slid).
+failed to get filesystem info
+fsck: not booting main or diagnostic OS. Skipping fsck on OS container
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:17.214336 (mount-phase-1) <Notice>: Doing boot task
+mount[6] triggered unnest of range 0x1e6400000->0x1e8600000 of DYLD shared region in VM map 0xf7ecfc53b93705c5. While not abnormal for debuggers, this increases system memory footprint almost permanently (until the shared region is re-slid).
+failed to get filesystem info
+failed to get filesystem info
+mount: data volume missing, but not required in env: 0
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:17.367380 (data-protection) <Notice>: Doing boot task
+seputil[7] triggered unnest of range 0x1e6400000->0x1e8600000 of DYLD shared region in VM map 0xf7ecfc53b93726b5. While not abnormal for debuggers, this increases system memory footprint almost permanently (until the shared region is re-slid).
+init_data_protection: No SEP present on this device
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:17.383513 (finish-obliteration) <Notice>: Doing boot task
+mobile_obliterat[8] triggered unnest of range 0x1e6400000->0x1e8600000 of DYLD shared region in VM map 0xf7ecfc53b93707e5. While not abnormal for debuggers, this increases system memory footprint almost permanently (until the shared region is re-slid).
+Thu Jan  1 00:03:17 1970: <unknown mode>: runningInternalBuild_block_invoke: Running on an Customer build according to OS variant [gF: 0x0000000000000000]
+Obliterator: In INIT check
+Thu Jan  1 00:03:17 1970: <unknown mode>: checkOblitNVRAMkey: IORegistryEntryGetProperty failed, may be does not exist [gF: 0x0000000000000000]
+Obliterator: No obliteration needed, continue booting, returning 0
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:17.411364 (detect-installed-roots) <Notice>: Doing boot task
+com.apple.xpc.launchd|1970-01-01 00:03:17.411423 <Notice>: No cookie from system volume
+com.apple.xpc.launchd|1970-01-01 00:03:17.411486 <Notice>: No cookie: /private/preboot/726564776F6F640000000000000000000000000000000000000000000000000000000000000000000000000000000000/.roots-installed
+com.apple.xpc.launchd|1970-01-01 00:03:17.411511 (select-boot-mode) <Notice>: Doing boot task
+com.apple.xpc.launchd|1970-01-01 00:03:17.411526 (commit-boot-mode) <Notice>: Doing boot task
+com.apple.xpc.launchd|1970-01-01 00:03:17.411539 <Notice>: boot-mode committed: (null)
+com.apple.xpc.launchd|1970-01-01 00:03:17.411561 (restore-datapartition) <Notice>: Doing boot task
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:17.412149 (restore-datapartition) <Notice>: optional boot task not present
+com.apple.xpc.launchd|1970-01-01 00:03:17.412187 (mount-phase-2) <Notice>: Doing boot task
+mount[10] triggered unnest of range 0x1e6400000->0x1e8600000 of DYLD shared region in VM map 0xf7ecfc53b9370b15. While not abnormal for debuggers, this increases system memory footprint almost permanently (until the shared region is re-slid).
+failed to get filesystem info
+failed to get filesystem info
+mount: data volume missing, but not required in env: 0
+panic-on-crash disabled via boot-arg
+delete_MB_snapshots:1977: Failed to get snapshot list - Operation not supported. Ignoring...
+boot_is_darwinos_ramdisk:1402: failed to look up hw.osenvironment: Invalid argument(22)
+create_and_register_exclave_path_if_needed:887: Skipping the registration of the exclaves writable storage
+handle_overprovisioning:1646: Couldn't get whole media size: -536870208
+mount_phase_two:2358: Overprovision setup failed - error e00002c0 (errno 6). Ignoring...
+com.apple.xpc.launchd|1970-01-01 00:03:17.446281 (init-with-data-volume) <Notice>: Doing boot task
+com.apple.xpc.launchd|1970-01-01 00:03:17.446803 (fixup-mobile-tmp) <Notice>: Doing boot task
+com.apple.xpc.launchd|1970-01-01 00:03:17.446843 (fixup-mobile-tmp) <Notice>: /private/var/mobile/tmp already exists, skipping
+com.apple.xpc.launchd|1970-01-01 00:03:17.446863 (fixup-mobile-tmp) <Notice>: Finished boot task
+com.apple.xpc.launchd|1970-01-01 00:03:17.446876 (MSUEarlyBootTask) <Notice>: Doing boot task
+MSUEarlyBootTask: MSUEarlyBootTask running
+MSUEarlyBootTask running in normal env
+main: Content from the ramdisk will be present at /private/var/MobileSoftwareUpdate//726564776f6f640000000000000000000000000000000000000000000000000000000000000000000000000000000000-MSUData if it exists
+MSUEarlyBootTask: Set up ACL on log folder
+MSUEarlyBootTas: Set up ACL on log file
+com.apple.xpc.launchd|1970-01-01 00:03:17.497825 (MobileAssetEarlyBootTask) <Notice>: Doing boot task
+com.apple.xpc.launchd|1970-01-01 00:03:17.499600 (fips) <Notice>: Doing boot task
+About to call the FIPS_POST function in the corecrypto.dylib
+Tracing: disabled
+FIPSPOST_USER [3792198149] fipspost_post:157: [FIPSPOST][Module-ID] Apple corecrypto Module v26.0 [Apple ARM, User, Software, SL1, N/A]
+FIPSPOST_USER [3792288877] fipspost_post:165: PASSED: (3 ms) - fipspost_post_hmac
+FIPSPOST_USER [3792373471] fipspost_post:170: PASSED: (4 ms) - fipspost_post_integrity
+FIPSPOST_USER [3792397616] fipspost_post:175: PASSED: (1 ms) - fipspost_post_indicator
+FIPSPOST_USER [3792397864] fipspost_post:176: PASSED: (0 ms) - fipspost_post_aes_ecb
+FIPSPOST_USER [3792398051] fipspost_post:177: PASSED: (0 ms) - fipspost_post_aes_cbc
+FIPSPOST_USER [3792503039] fipspost_post:178: PASSED: (5 ms) - fipspost_post_rsa_sig
+FIPSPOST_USER [3792781147] fipspost_post:179: PASSED: (14 ms) - fipspost_post_ecdsa
+FIPSPOST_USER [3792791852] fipspost_post:180: PASSED: (0 ms) - fipspost_post_ecdh
+FIPSPOST_USER [3792792146] fipspost_post:181: PASSED: (0 ms) - fipspost_post_aes_ccm
+FIPSPOST_USER [3792792341] fipspost_post:182: PASSED: (0 ms) - fipspost_post_aes_gcm
+FIPSPOST_USER [3792792602] fipspost_post:183: PASSED: (0 ms) - fipspost_post_aes_cmac
+FIPSPOST_USER [3792794057] fipspost_post:184: PASSED: (0 ms) - fipspost_post_hkdf
+FIPSPOST_USER [3793205276] fipspost_post:185: PASSED: (21 ms) - fipspost_post_pbkdf
+FIPSPOST_USER [3793207106] fipspost_post:186: PASSED: (0 ms) - fipspost_post_drbg_hmac
+FIPSPOST_USER [3793207927] fipspost_post:188: PASSED: (0 ms) - fipspost_post_kdf_ctr
+FIPSPOST_USER [3793208152] fipspost_post:189: PASSED: (0 ms) - fipspost_post_kdf_ctr_cmac
+FIPSPOST_USER [3793208381] fipspost_post:190: PASSED: (0 ms) - fipspost_post_aes_xts
+FIPSPOST_USER [3793208669] fipspost_post:191: PASSED: (0 ms) - fipspost_post_drbg_ctr
+FIPSPOST_USER [3793460228] fipspost_post:193: PASSED: (13 ms) - fipspost_post_ffdh
+FIPSPOST_USER [3793599809] fipspost_post:194: PASSED: (7 ms) - fipspost_post_rsa_enc_dec
+FIPSPOST_USER [3793600058] fipspost_post:195: PASSED: (0 ms) - fipspost_post_shake
+FIPSPOST_USER [3793617866] fipspost_post:196: PASSED: (0 ms) - fipspost_post_mlkem
+FIPSPOST_USER [3793743886] fipspost_post:197: PASSED: (6 ms) - fipspost_post_mldsa
+FIPSPOST_USER [3793744013] fipspost_post:217: all tests PASSED (80 ms)
+Returned from calling the FIPS_POST function in the corecrypto.dylib: result = true
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:17.591383 (keybag) <Notice>: Doing boot task
+****** IN MKB_INIT ****
+MKB_INIT: Could not open /private/var/keybags/systembag.kb: No such file or directory
+MKB_INIT: Could not open /private/var/keybags/systembag.kb: No such file or directory
+-MKB_INIT: Unable to load /private/var/keybags/systembag.kb
+MKB_INIT: Failed to validate keybag file: -1, 0
+MKB_INIT: Could not open /private/var/keybags/systembag.kb.writing: No such file or directory
+0h?Id'oMKB_INIT: Unable to load /private/var/keybags/systembag.kb.writing
+MKB_INIT: Failed to validate keybag file: -1
+MKB_INIT: Can't load secure keybag Object: -8
+MKB_INIT: Unable to load keybag with Crypto: -8
+ngMKB_INIT: dt = -8, bootarg = 0
+MKB_INIT: mount is with NO CPROTECT:0x4001000 on  (/private/var/)
+MKB_INIT: mount point (/private/var/) does not support Data Protection
+MKB_INIT: Setup allow list:
+mount point (/private/var) does not support Data Protection****** DONE MKB_INIT ****
+com.apple.xpc.launchd|1970-01-01 00:03:17.656858 (usermanagerd) <Notice>: Doing boot task
+****** IN UMD_INIT ****
+****** STARTING EARLYBOOT SETUP ****
+00:03:17:510: [MobileAssetEarlyBootTask]: ============================Running after reboot============================
+00:03:17:719: [MobileAssetEarlyBootTask]: Failed to determine size of buffer to read OSEnvironement value(Invalid argument). Assuming running in normal mode
+00:03:17:720: [MobileAssetEarlyBootTask]: Attempting to graft secure assets from previous boot session
+****** DONE EARLYBOOT SETUP ****
+****** DONE UMD_INIT ****
+com.apple.xpc.launchd|1970-01-01 00:03:17.723155 (dirs_cleaner) <Notice>: Doing boot task
+00:03:17:723: [MobileAssetEarlyBootTask]: Attempting to graft secure assets from last boot session
+
+00:03:17:727: [MobileAssetEarlyBootTask]: Unable to determine boot plist from previous boot. Skipping grafting: Error Domain=SecureMobileAssetErrorDomain Code=-4 "MA repo path does not exist." UserInfo={NSDebugDescription=MA repo path does not exist.}
+
+00:03:17:727: [MobileAssetEarlyBootTask]: Failed to graft secure assets from previous boot session
+00:03:17:728: [MobileAssetEarlyBootTask]: ============================Run completed============================
+dc_swap_dirs: renamex_np(/private/var/tmp, /private/var/dirs_cleaner/h1, RENAME_SWAP) failed with errno=45: Operation not supported
+dc_swap_dirs: renamex_np(/private/var/run, /private/var/dirs_cleaner/1Z, RENAME_SWAP) failed with errno=45: Operation not supported
+dc_swap_dirs: renamex_np(/private/var/mobile/tmp, /private/var/dirs_cleaner/9L, RENAME_SWAP) failed with errno=45: Operation not supported
+dc_swap_dirs: renamex_np(/private/var/boot, /private/var/dirs_cleaner/m3, RENAME_SWAP) failed with errno=45: Operation not supported
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:17.730866 (dirs_cleaner-usr) <Notice>: Skipping boot-task
+[System Event] [3796438930] [INFO] [Subsystem: launchd] [Event: exclaves-boot] Doing boot task
+[System Event] [3796441001] [INFO] [Subsystem: launchd] [Event: fsck] Doing boot task
+[System Event] [3796442954] [INFO] [Subsystem: launchd] [Event: mount-phase-1] Doing boot task
+[System Event] [3796444957] [INFO] [Subsystem: launchd] [Event: data-protection] Doing boot task
+[System Event] [3796446934] [INFO] [Subsystem: launchd] [Event: finish-obliteration] Doing boot task
+[System Event] [3796448861] [INFO] [Subsystem: launchd] [Event: detect-installed-roots] Doing boot task
+[System Event] [3796451156] [INFO] [Subsystem: launchd] [Event: select-boot-mode] Doing boot task
+[System Event] [3796453106] [INFO] [Subsystem: launchd] [Event: commit-boot-mode] Doing boot task
+[System Event] [3796455214] [INFO] [Subsystem: launchd] [Event: restore-datapartition] Doing boot task
+[System Event] [3796457141] [INFO] [Subsystem: launchd] [Event: restore-datapartition] optional boot task not present
+[System Event] [3796459087] [INFO] [Subsystem: launchd] [Event: mount-phase-2] Doing boot task
+[System Event] [3796461035] [INFO] [Subsystem: launchd] [Event: init-with-data-volume] Doing boot task
+[System Event] [3796462960] [INFO] [Subsystem: launchd] [Event: fixup-mobile-tmp] Doing boot task
+[System Event] [3796464913] [INFO] [Subsystem: launchd] [Event: fixup-mobile-tmp] /private/var/mobile/tmp already exists, skipping
+[System Event] [3796466885] [INFO] [Subsystem: launchd] [Event: fixup-mobile-tmp] Finished boot task
+[System Event] [3796468793] [INFO] [Subsystem: launchd] [Event: MSUEarlyBootTask] Doing boot task
+[System Event] [3796470713] [INFO] [Subsystem: launchd] [Event: MobileAssetEarlyBootTask] Doing boot task
+[System Event] [3796472773] [INFO] [Subsystem: launchd] [Event: fips] Doing boot task
+[System Event] [3796474675] [INFO] [Subsystem: launchd] [Event: keybag] Doing boot task
+[System Event] [3796476590] [INFO] [Subsystem: launchd] [Event: usermanagerd] Doing boot task
+[System Event] [3796478504] [INFO] [Subsystem: launchd] [Event: dirs_cleaner] Doing boot task
+[System Event] [3796480415] [INFO] [Subsystem: launchd] [Event: dirs_cleaner-usr] Skipping boot-task
+com.apple.xpc.launchd|1970-01-01 00:03:17.730953 <Notice>: launchd logging initialized. name: com.apple.xpc.launchd pid: 1
+com.apple.xpc.launchd|1970-01-01 00:03:17.733484 (xpcroleaccountd) <Notice>: Doing boot task
+[System Event] [3796486105] [INFO] [Subsystem: launchd] [Event: xpcroleaccountd] Doing boot task
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:17.748983 (init_featureflags) <Notice>: Doing boot task
+[System Event] [3796783325] [INFO] [Subsystem: launchd] [Event: init_featureflags] Doing boot task
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:18.064798 (auearlyboot) <Notice>: Doing boot task
+[System Event] [3802847198] [INFO] [Subsystem: launchd] [Event: auearlyboot] Doing boot task
+auearlyboot: -[FudEarlyBoot doFUDEarlyBoot:](): Starting Early Boot
+auearlyboot: -[AppleFirmwareUpdateController getEarlyBootListInternal:]: Pending critical earlyBoot entries (
+)
+auearlyboot: No Early Boot Accessories
+auearlyboot: -[FudEarlyBoot calculateTimeTakenForEarlyBootEntries] Time Taken to wait for critical earlyBoot entries: 0.000000 sec
+auearlyboot: -[FudEarlyBoot doFUDEarlyBoot:](): End Early Boot
+auearlyboot: Exitng Early Boot
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:18.083498 (tzinit) <Notice>: Doing boot task
+[System Event] [3803207889] [INFO] [Subsystem: launchd] [Event: tzinit] Doing boot task
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:18.083867 (tzinit) <Notice>: optional boot task not present
+[System Event] [3803214770] [INFO] [Subsystem: launchd] [Event: tzinit] optional boot task not present
+com.apple.xpc.launchd|1970-01-01 00:03:18.083875 (finish-restore) <Notice>: Doing boot task
+[System Event] [3803217234] [INFO] [Subsystem: launchd] [Event: finish-restore] Doing boot task
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:18.088504 (finish-demo-restore) <Notice>: Doing boot task
+[System Event] [3803303429] [INFO] [Subsystem: launchd] [Event: finish-demo-restore] Doing boot task
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:18.093602 (sysstatuscheck) <Notice>: Doing boot task
+[System Event] [3803399159] [INFO] [Subsystem: launchd] [Event: sysstatuscheck] Doing boot task
+com.apple.xpc.launchd|1970-01-01 00:03:18.098559 (prng_seedctl) <Notice>: Doing boot task
+[System Event] [3803494148] [INFO] [Subsystem: launchd] [Event: prng_seedctl] Doing boot task
+kern.prng.user_reseed_count: (-1) (2) No such file or directory
+failed to load kernel prng seed: (-76) (2) No such file or directory
+failed to load virtual random: (-147) (-536870212)
+com.apple.xpc.launchd|1970-01-01 00:03:18.105713 (launchd_cache_loader) <Notice>: Doing boot task
+[System Event] [3803631446] [INFO] [Subsystem: launchd] [Event: launchd_cache_loader] Doing boot task
+0 Found valid port: 7683 Valid: 1
+1 Found valid port: 0 Valid: 0
+2 Found valid port: 0 Valid: 0
+Using default cache paths
+Code: /System/Library/xpc/launchd.plist Sig: /System/Library/xpc/launchd.plist.sig
+Using unsecure cache: /System/Library/xpc/launchd.plist
+Trying to send bytes to launchd: 7683 16384
+Sending validated cache to launchd
+Cache sent to launchd successfully
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:18.112255 (workload-properties-init) <Notice>: Doing boot task
+[System Event] [3803757322] [INFO] [Subsystem: launchd] [Event: workload-properties-init] Doing boot task
+com.apple.xpc.launchd|1970-01-01 00:03:18.112296 (init-exclavekit) <Notice>: Doing boot task
+[System Event] [3803759807] [INFO] [Subsystem: launchd] [Event: init-exclavekit] Doing boot task
+panic-on-crash disabled via boot-arg
+com.apple.xpc.launchd|1970-01-01 00:03:18.169294 (boot) <Notice>: Earl[System Event] [3804852371] [INFO] [Subsystem: launchd] [Event: boot] Early boot complete. Continuing system boot.
+y boot complete. Continuing system boot.
+37[xpcproxy] vm_map_with_linking: (warn) found 1 shadow object(s) with 0 pages at 0x100330000
+
+=== /redwood/etc/rc.jobs ===
+input26: standalone pid=32 device=/dev/redwood-touch callbacks=2
+input26: qos thread requested=33 set=0 get=0 class=33 relative=0
+Hello from a dynamically linked program! pid 36, 2 argument(s)
+uname: Darwin 25.6.0 iPhone18,3
+heap: malloc works (0x100f0d350), stack near 0x16f6b3108, main at 0x100753d4c, printf at 0x18f959fc0
+argv[0] = /redwood/bin/hello_dyn
+argv[1] = probe-root
+Hello from a dynamically linked program! pid 35, 2 argument(s)
+uname: Darwin 25.6.0 iPhone18,3
+heap: malloc works (0x1003d1350), stack near 0x16fa6b088, main at 0x10039bd4c, printf at 0x18f959fc0
+argv[0] = /redwood/bin/hello_dyn
+argv[1] = probe-mobile
+distnoted(42,0x1ed5821c0) malloc: Maximum magazines set to 1
+Hello from a dynamically linked program! pid 29, 2 argument(s)
+uname: Darwin 25.6.0 iPhone18,3
+heap: malloc works (0x100b25350), stack near 0x16f9eb0f8, main at 0x10041bd4c, printf at 0x18f959fc0
+argv[0] = /redwood/bin/hello_dyn
+argv[1] = probe2-no-console-redirect
+1970-01-01 00:03:19.337858+0000 usermanagerd[44:287] Could not open /private/var/containers/Shared/SystemGroup/systemgroup.com.apple.mobilegestaltcache/Library/Caches/com.apple.MobileGestalt.plist: No such file or directory
+****** USERMANAGERD SESSION SETUP DONE  ****
+battery: BQ27Z561 SOC=99% V=4430 mV I=-409 mA T=30.45 C
+buttons: so far 0 presses of power, 0 of volume up, 0 of volume down; now none held; 1256 reads of the bus, 8 us each (the longest 12), 0 failed
+buttons: so far 0 presses of power, 0 of volume up, 0 of volume down; now none held; 1256 reads of the bus, 8 us each (the longest 12), 0 failed
+battery: BQ27Z561 SOC=99% V=4442 mV I=-190 mA T=30.45 C
+1970-01-01 00:03:25.182850+0000 distnoted[42:277] # distnote server daemon  absolute time: 3.808039313   civil time: Thu Jan  1 00:03:18 1970   pid: 42 uid: 241  root: yes
+1970-01-01 00:03:25.183851+0000 fseventsd[41:283] [Client] xpc_activity_register: com.apple.fseventsd.daily, criteria: dictionary
+1970-01-01 00:03:25.184405+0000 fseventsd[41:283] [Client] _xpc_activity_register: com.apple.fseventsd.daily (0x100b45690), 0
+1970-01-01 00:03:25.184432+0000 fseventsd[41:283] [Client] xpc_activity_set_criteria: com.apple.fseventsd.daily (0x100b45690), dict
+1970-01-01 00:03:25.184234+0000 backboardd[37:270] [Common] starting /usr/libexec/backboardd...
+1970-01-01 00:03:25.184788+0000 wifid[34:265] [] mkdir: created /var/tmp/com.apple.wifi.manager/
+1970-01-01 00:03:25.185077+0000 fseventsd[41:303] [Client] xpc_activity_set_criteria, lower half: com.apple.fseventsd.daily (0x100b45690), dict
+1970-01-01 00:03:25.185114+0000 fseventsd[41:303] [Client] _xpc_activity_set_criteria: com.apple.fseventsd.daily (0x100b45690), dict
+1970-01-01 00:03:25.185140+0000 wifid[34:265] [] _dirhelper_update_tmpdir: old=(null), new=/var/tmp/com.apple.wifi.manager/
+1970-01-01 00:03:25.185158+0000 fseventsd[41:303] [Client] _xpc_activity_set_criteria: xpc_set_event com.apple.fseventsd.daily, 1
+1970-01-01 00:03:25.187132+0000 fseventsd[41:303] Subscribed to event com.apple.fseventsd.daily using token 0
+1970-01-01 00:03:25.187177+0000 fseventsd[41:303] [Client] xpc_activity_set_criteria: com.apple.fseventsd.daily (0x100b45690), setting state now to 1
+1970-01-01 00:03:25.187202+0000 fseventsd[41:303] [Client] _xpc_activity_set_state: com.apple.fseventsd.daily (0x100b45690), 1
+1970-01-01 00:03:25.187501+0000 backboardd[37:270] [Common] start prewarm oscard where available...
+1970-01-01 00:03:25.187839+0000 fseventsd[41:283] [daemon] create_dls_callback: Could not open logging directory <2> [/private/var/.fseventsd] for mount[/private/var] dev[2113929217]
+1970-01-01 00:03:25.187882+0000 fseventsd[41:283] [daemon] create_dls_callback: Could not open logging directory <2> [/private/var/private/var/db/fseventsd] for mount[/private/var] dev[2113929217]
+1970-01-01 00:03:25.188078+0000 fseventsd[41:283] [daemon] could not open [apfs]<</private/var/.fseventsd/fseventsd-uuid>> (No such file or directory)
+1970-01-01 00:03:25.188119+0000 fseventsd[41:283] [daemon] Failed to load UUID.  Removing all old log files in /private/var/.fseventsd
+1970-01-01 00:03:25.188187+0000 fseventsd[41:283] [daemon] log dir: /private/var/.fseventsd getting new uuid: 03125D1D-0BB3-43B5-A009-F6E702F3AC94
+1970-01-01 00:03:25.188249+0000 fseventsd[41:283] [daemon] create_dls_callback: Could not open logging directory <2> [/.fseventsd] for mount[/] dev[16777216]
+1970-01-01 00:03:25.188323+0000 backboardd[37:313] [Common] oscard connection event: Connection invalid
+1970-01-01 00:03:25.188421+0000 backboardd[37:270] [Common]       prewarm oscard where available ready in 0.000761615s. overall 0.00146156s
+1970-01-01 00:03:25.188480+0000 backboardd[37:270] [Common] start CoreAccessories...
+1970-01-01 00:03:25.188533+0000 fseventsd[41:283] [daemon] create_dls_callback: Use fallback log directory for read only root fs [/private/var/db/fseventsd] for mount[/] dev[16777216]
+1970-01-01 00:03:25.188615+0000 fseventsd[41:283] [daemon] could not open [apfs]<</private/var/db/fseventsd/fseventsd-uuid>> (No such file or directory)
+1970-01-01 00:03:25.188636+0000 fseventsd[41:283] [daemon] Failed to load UUID.  Removing all old log files in /private/var/db/fseventsd
+1970-01-01 00:03:25.188694+0000 fseventsd[41:283] [daemon] log dir: /private/var/db/fseventsd getting new uuid: CB9ADE1E-5E60-41F9-BF49-0131CEC46A57
+1970-01-01 00:03:25.190663+0000 backboardd[37:270] Created 9 log object(s)!
+1970-01-01 00:03:25.190722+0000 backboardd[37:270] Created 4 log object(s)!
+1970-01-01 00:03:25.190737+0000 backboardd[37:270] [HW Component Auth] CoreAccessoriesInitForHID
+1970-01-01 00:03:25.192918+0000 fseventsd[41:283] [SecWarning] SecTaskLoadEntitlements: failed to get cs_flags, error=3, pid=0
+1970-01-01 00:03:25.187666+0000 runningboardd[30:267] [general] Battlecruiser operational.
+minisandbox: request 4 (first seen from cfprefsd[46]): answered
+sb26: AppleLanguages ensured zh-Hans-CN prioritized (updated)
+1970-01-01 00:03:25.212237+0000 containermanagerd[38:271] [longterm] Default user: (501|501|mobile|/private/var/mobile), current user: (0|0|root|/private/var/root), bundle owner: (33|33|_installd|/private/var/installd), home dir: [file:///private/var/root/]
+1970-01-01 00:03:25.214955+0000 containermanagerd[38:316] [startup] containermanagerd (MobileContainerManager-725.160.3~174) built at Jul 30 2026 13:31:10 started
+1970-01-01 00:03:25.216601+0000 backboardd[37:270] [HW Component Auth] resumed XPC connection
+1970-01-01 00:03:25.216635+0000 containermanagerd[38:316] [longterm] Current build version (23G90 / (null))
+1970-01-01 00:03:25.216889+0000 backboardd[37:270] [HW Component Auth] Authenticating touch controller... (completionHandler: YES)
+sb26: validate _setupActivationState address=224e03dc0 expected=224e03dc0 encoding=v16@0:8 match=1
+sb26: build=23G90 activation_installed=1
+1970-01-01 00:03:25.223044+0000 backboardd[37:270] [Common]       CoreAccessories ready in 0.0345454s. overall 0.0362433s
+1970-01-01 00:03:25.223801+0000 wifid[34:265] [Default] wifid started to use MobileStoreDemoKit/MSDKDemoState.
+1970-01-01 00:03:25.225961+0000 wifid[34:265] [Default] -[MSDKDemoState _isStoreDemoModeEnabled:] - Caller is in root user session, making call to MobileGestalt
+1970-01-01 00:03:25.226764+0000 wifid[34:265] Could not open /private/var/containers/Shared/SystemGroup/systemgroup.com.apple.mobilegestaltcache/Library/Caches/com.apple.MobileGestalt.plist: No such file or directory
+1970-01-01 00:03:25.231195+0000 containermanagerd[38:316] [logging] volume does not support data protection, stripping SQLITE_OPEN_FILEPROTECTION_* flags
+1970-01-01 00:03:25.238154+0000 backboardd[37:270] [connection] Initializing connection
+1970-01-01 00:03:25.239934+0000 backboardd[37:270] [process] Removing all cached process handles
+1970-01-01 00:03:25.240122+0000 backboardd[37:313] [connection] Sending handshake request attempt #1 to server
+1970-01-01 00:03:25.240364+0000 backboardd[37:313] [connection] Creating connection to com.apple.runningboard
+1970-01-01 00:03:25.245584+0000 runningboardd[30:267] [] mkdir: created /var/tmp/com.apple.runningboard/
+1970-01-01 00:03:25.245630+0000 runningboardd[30:267] [] _dirhelper_update_tmpdir: old=(null), new=/var/tmp/com.apple.runningboard/
+1970-01-01 00:03:25.246653+0000 ACCHWComponentAuthService[48:329] Created 9 log object(s)!
+1970-01-01 00:03:25.246920+0000 ACCHWComponentAuthService[48:329] Created 4 log object(s)!
+1970-01-01 00:03:25.247511+0000 containermanagerd[38:316] [logging] volume does not support data protection, stripping SQLITE_OPEN_FILEPROTECTION_* flags
+1970-01-01 00:03:25.247899+0000 runningboardd[30:267] [job] Launchd says label com.apple.runningboardd has never exited
+1970-01-01 00:03:25.247952+0000 ACCHWComponentAuthService[48:329] [HW Component Auth] Starting xpc service
+1970-01-01 00:03:25.248739+0000 containermanagerd[38:316] [logging] volume does not support data protection, stripping SQLITE_OPEN_FILEPROTECTION_* flags
+1970-01-01 00:03:25.249724+0000 runningboardd[30:267] [general] Loading Domain Attributes from: /System/Library/LifecyclePolicy/DomainAttributes
+1970-01-01 00:03:25.251806+0000 ACCHWComponentAuthService[48:336] [HW Component Auth] (moduleType=1) 363: 205.251
+1970-01-01 00:03:25.252668+0000 containermanagerd[38:316] [fs] Wrote [/private/var/root/Library/MobileContainerManager/mcm_migration_status.plist], length = 42, options = 0x0, mode = 0666
+1970-01-01 00:03:25.254375+0000 ACCHWComponentAuthService[48:336] Could not open /private/var/containers/Shared/SystemGroup/systemgroup.com.apple.mobilegestaltcache/Library/Caches/com.apple.MobileGestalt.plist: No such file or directory
+1970-01-01 00:03:25.255329+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 7
+1970-01-01 00:03:25.255644+0000 ACCHWComponentAuthService[48:336] [HW Component Auth] (moduleType=1)
+1970-01-01 00:03:25.255665+0000 ACCHWComponentAuthService[48:336] [HW Component Auth] (moduleType=1) 389: 205.255
+1970-01-01 00:03:25.255748+0000 ACCHWComponentAuthService[48:336] [HW Component Auth] (moduleType=1) Error: The component AppleAuthCP was not found
+1970-01-01 00:03:25.255766+0000 ACCHWComponentAuthService[48:336] [HW Component Auth] (moduleType=1) 744: 205.255
+1970-01-01 00:03:25.255780+0000 ACCHWComponentAuthService[48:336] [HW Component Auth] (moduleType=1) Replying with authPassed = 0, fdrValid = 0, authError = 22
+1970-01-01 00:03:25.255995+0000 backboardd[37:330] [HW Component Auth] touch authPassed = 0, fdrValidationStatus 0, authError 22
+1970-01-01 00:03:25.256420+0000 runningboardd[30:267] Could not open /private/var/containers/Shared/SystemGroup/systemgroup.com.apple.mobilegestaltcache/Library/Caches/com.apple.MobileGestalt.plist: No such file or directory
+1970-01-01 00:03:25.257614+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 2
+1970-01-01 00:03:25.257971+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 2
+1970-01-01 00:03:25.258031+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 2
+1970-01-01 00:03:25.258139+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 2
+1970-01-01 00:03:25.258217+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 4
+1970-01-01 00:03:25.258340+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 2
+1970-01-01 00:03:25.258413+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 2
+1970-01-01 00:03:25.258481+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 2
+1970-01-01 00:03:25.258522+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 2
+1970-01-01 00:03:25.258582+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 2
+1970-01-01 00:03:25.258834+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 8
+1970-01-01 00:03:25.259062+0000 runningboardd[30:267] [assertion] RBSCPUAccessGrant with role: 4
+Binary file (standard input) matches

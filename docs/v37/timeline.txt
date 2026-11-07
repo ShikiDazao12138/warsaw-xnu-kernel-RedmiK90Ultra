@@ -1,0 +1,16 @@
+[1s] 镜像 Mu-warsaw-xnu-k10.img / 载荷 payload-v37.bin / 系统盘 F:/warsaw-ios26/tree/userland/system26.apfs
+[8s] 从 Android 重启进 bootloader
+[18s] fastboot boot → Booting                                            OKAY [  0.086s] Finished. Total time: 0.344s 
+[38s] ★ xnuloader 出现
+[47s] ✓ USB 诊断模式
+[47s] 分段上传 system26.apfs
+[200s] stage 载荷
+Sending 'C:/Users/Administrator/WorkBuddy/2026-11-06-17-23-24/hackios/hackios-xnu-kernel/out/payload-v37.bin' (24469 KB) OKAY [  0.628s]
+Finished. Total time: 0.629s
+[201s] oem run
+OKAY [  0.000s]
+Finished. Total time: 0.000s
+[202s]   日志 #1 t=0s  1338 B
+[202s]   result: result: running 0 0
+[203s]   日志 #2 t=2s  20704 B
+[206s]   日志 #3 t=5s  20948 B
