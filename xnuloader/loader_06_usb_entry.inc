@@ -883,7 +883,7 @@ fb_command(char *cmd)
 			fb_reply("OKAY", "");
 		} else if (starts_with(cmd, "reboot") || starts_with(cmd, "oem reboot")) {
 			fb_reply("OKAY", "");
-			if (PLAT == &platform_annibale || kernel_resources_held || firmware_fault) {
+			if (PLAT == &platform_annibale || PLAT == &platform_warsaw || kernel_resources_held || firmware_fault) {
 				/* annibale matches ArmPsciResetSystemLib; on any platform a held or faulted
 				 * state takes the same direct door before the stall and the callbacks. A
 				 * return means no reset: the loop below stays usable and owns the cable. */

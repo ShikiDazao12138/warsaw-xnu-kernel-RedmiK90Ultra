@@ -1,0 +1,55 @@
+name: build-loader
+
+# 只编 xnuloader（freestanding AArch64 UEFI app），不需要 Xcode / ptrauth / iig。
+# Ubuntu 的 clang + lld-link 足够：--target=aarch64-unknown-windows + /nodefaultlib。
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'xnuloader/**'
+      - '.github/workflows/build-loader.yml'
+
+jobs:
+  build-phone-loader:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 装 clang 与 lld-link
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang lld
+          clang --version | head -2
+          command -v lld-link
+
+      - name: 编 warsaw 专用 loader-phone.efi
+        env:
+          # WARSAW 让 PLAT_PHONE = &platform_warsaw，并把面板写死成 1280x2772
+          EXTRA_CFLAGS: -DDIRECT_PHONE_PLAT -DWARSAW
+          BUILD_ID: ${{ github.sha }}
+        run: |
+          cd xnuloader
+          bash build.sh
+          sha256sum loader-phone.efi
+          ls -la loader-phone.efi
+
+      - name: 确认产物是 AArch64 PE
+        run: |
+          python3 - <<'PY'
+          import struct
+          d = open('xnuloader/loader-phone.efi','rb').read()
+          assert d[:2] == b'MZ', 'not a PE image'
+          pe = struct.unpack('<I', d[0x3c:0x40])[0]
+          assert d[pe:pe+4] == b'PE\0\0', 'no PE signature'
+          machine = struct.unpack('<H', d[pe+4:pe+6])[0]
+          print('PE machine = 0x%04x (0xaa64 = ARM64)' % machine)
+          assert machine == 0xaa64
+          print('size =', len(d))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: loader-phone-warsaw
+          path: xnuloader/loader-phone.efi
+          if-no-files-found: error
