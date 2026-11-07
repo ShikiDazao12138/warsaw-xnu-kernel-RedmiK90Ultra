@@ -74,3 +74,50 @@ jobs:
           name: arm64e-progs
           path: /tmp/u/userland/obj/
           if-no-files-found: error
+
+  adhoc-userland:
+    # A Windows build host has no codesign. The prebuilt programs of our own are
+    # thin arm64 Mach-O files with __LINKEDIT, so macOS can ad hoc sign them and
+    # we can copy the signed copies into the local tree. iOS 26 launchd refuses
+    # to start a job whose program is not a platform binary; kern_minimac.c takes
+    # any ad hoc signed binary for one. This job also builds RedwoodInstaller.app,
+    # whose src/build_installer.sh needs Apple clang and codesign.
+    # Nothing in here is an Apple file: the sources and prebuilt programs come
+    # from the public hackios-xnu-userland repository.
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.3.app 2>/dev/null || \
+          sudo xcode-select -s /Applications/Xcode_26.2.app 2>/dev/null || true
+          xcodebuild -version
+      - name: Fetch userland sources
+        run: git clone --depth 1 --branch k90-port https://github.com/iola1999/hackios-xnu-userland.git /tmp/ul
+      - name: Ad-hoc sign the prebuilt programs and build RedwoodInstaller.app
+        run: |
+          set -e
+          mkdir -p /tmp/out/signed
+          cp /tmp/ul/prebuilt/userland/* /tmp/out/signed/
+          for f in /tmp/out/signed/*; do
+            magic=$(od -An -tx1 -N4 "$f" | tr -d ' \n')
+            case "$magic" in
+              cffaedfe|feedfacf|cefaedfe|bebafeca|cafebabe) ;;
+              *) echo "skip (not Mach-O): $(basename "$f")"; continue ;;
+            esac
+            /usr/bin/codesign --force --sign - "$f"
+            printf '%-40s ' "$(basename "$f")"
+            /usr/bin/codesign -dv "$f" 2>&1 | grep -i 'flags=' | head -1 || true
+          done
+          cd /tmp/ul/userland
+          mkdir -p obj
+          bash src/build_installer.sh
+          cp -a obj/RedwoodInstaller.app /tmp/out/
+          echo "--- RedwoodInstaller.app ---"
+          ls -l /tmp/out/RedwoodInstaller.app/
+          /usr/bin/codesign -dv /tmp/out/RedwoodInstaller.app/RedwoodInstaller 2>&1 | head -6
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adhoc-userland
+          path: /tmp/out/
+          if-no-files-found: error
