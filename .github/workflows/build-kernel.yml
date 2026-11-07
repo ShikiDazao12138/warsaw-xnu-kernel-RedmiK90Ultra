@@ -131,6 +131,20 @@ jobs:
       - name: 依赖 stage2（libfirehose_kernel.a / libpthread_kext.a）
         run: bash xnu26/deps-macos.sh --stage2
 
+      # Wi-Fi 驱动 ath12k 是「可选链接」的：xnu26/build-macos.sh 只在
+      # xnu-deps/build/ath12k/out/ath12k.o 存在时才把它链接进内核。不跑这一步，
+      # 内核里的 mhi_pcie_wlfw.c 只会编出一句 "not built in"，PCIe step 9 直接跳过，
+      # WCN7850 就算上电、就算链路 up，也不会有 Wi-Fi。
+      # 代价：下载 Linux 7.0.14 与 FreeBSD 15.1 源码（约 350 MB），编译 ath12k 的 60 个文件。
+      - name: 取 ath12k 与 FreeBSD LinuxKPI（Wi-Fi 驱动）
+        run: |
+          time bash tools/mk-ath12k.sh
+          LX=xnu-deps/build/ath12k/out/ath12k.o
+          [ -f "$LX" ] || { echo "::error::没有编出 ath12k.o"; exit 1; }
+          ls -la "$LX"
+          echo "stubs（被略掉的函数）: $(wc -l < xnu-deps/build/ath12k/out/stubs.txt 2>/dev/null || echo 0)"
+          strings -a "$LX" | grep -m5 -E 'ath12k|wcn7850' || true
+
       - name: 编内核
         env:
           MACHINE: ${{ inputs.machine || 'BCM2837' }}
@@ -139,6 +153,31 @@ jobs:
           time bash xnu26/build-macos.sh
           # 真实产物路径是 BUILD/obj/<KCONFIG>_ARM64_<MACHINE>/mach.development.bcm2837，这里直接找出来
           find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.*' -type f -exec ls -la {} \;
+
+      # PCIe step 9（与固件的 WLFW 服务握手）要 ath12k 的 QMI 消息结构，脚本把它们写成
+      # 一个头文件塞进内核的 BUILD 目录；这要求 BUILD 目录已经在（上一步编过一遍）。
+      # 写完 touch 源文件，下一次构建才会真的重编 mhi_pcie_wlfw.c 并重新链接。
+      - name: 生成 ath12k 的 QMI 消息描述（PCIe step 9）
+        env:
+          MACHINE: ${{ inputs.machine || 'BCM2837' }}
+        run: |
+          time bash tools/mk-wlfw-ath12k.sh
+          H=$(find xnu-src -name 'redwood_wlfw_ath12k.h' | head -1)
+          [ -n "$H" ] || { echo "::error::没有生成 redwood_wlfw_ath12k.h"; exit 1; }
+          ls -la "$H"
+          touch xnu-src/xnu-12377.121.6/bsd/dev/mhi_pcie_wlfw.c
+
+      - name: 编内核（链接 ath12k 与 QMI 消息头）
+        env:
+          MACHINE: ${{ inputs.machine || 'BCM2837' }}
+          KERNEL_CONFIG: ${{ inputs.kconfig || 'DEVELOPMENT' }}
+        run: |
+          time bash xnu26/build-macos.sh
+          find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.*' -type f -exec ls -la {} \;
+          K=$(find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.development.bcm2837' -type f | head -1)
+          echo "--- 确认 ath12k 真的在里面（不应再出现 not built in）---"
+          strings -a "$K" | grep -c 'ath12k' || echo "0 条 ath12k 字符串"
+          strings -a "$K" | grep -m2 'not built in' || echo "✓ 没有 not built in"
 
       - name: 产物清单与校验
         run: |
