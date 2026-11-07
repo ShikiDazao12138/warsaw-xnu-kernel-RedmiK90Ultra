@@ -11,7 +11,9 @@ on:
 
 jobs:
   build-phone-loader:
-    runs-on: ubuntu-22.04
+    # 22.04 的 clang 14 编这个 target 会报 "fixup value out of range"；
+    # 24.04 自带 clang 18，与 WSL 里成功编过的工具链一致。
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
