@@ -63,6 +63,10 @@ jobs:
               -framework Foundation -framework Metal -framework UIKit -framework IOKit -lobjc \
               src/sb_metal_experiment.m -o obj/libredwood-sbmetal-experiment.dylib
           /usr/bin/codesign --force --sign - obj/libredwood-sbmetal-experiment.dylib
+          $CC -O1 -dynamiclib -install_name /redwood/lib/libredwoodmetal.dylib \
+              -framework Foundation -framework IOKit -framework Metal -lobjc \
+              src/redwoodmetal.m src/redwooddrawable.m -o obj/libredwoodmetal.dylib
+          /usr/bin/codesign --force --sign - obj/libredwoodmetal.dylib
           ls -l obj/
           for f in obj/*; do printf '%s ' "$f"; otool -hv "$f" 2>/dev/null | tail -1; done
       - uses: actions/upload-artifact@v4
