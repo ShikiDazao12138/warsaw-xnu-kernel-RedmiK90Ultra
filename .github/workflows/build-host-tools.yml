@@ -75,6 +75,14 @@ jobs:
               -framework Foundation -framework IOKit -framework Metal -lobjc \
               src/redwoodmetal.m src/redwooddrawable.m -o obj/libredwoodmetal.dylib
           /usr/bin/codesign --force --sign - obj/libredwoodmetal.dylib
+          # The same driver as a loadable bundle: Metal's discovery composes
+          # /System/Library/Extensions/<MetalPluginName>.bundle and takes the class from it; a
+          # dylib cannot serve, because dyld uniques images by install_name and the bundle would
+          # bind to the copy the process already has.  build.sh assembles
+          # root/lib/RedwoodMetal.bundle from obj/RedwoodMetal + src/metal_plugin.plist.
+          $CC -bundle -framework Foundation -framework IOKit -framework Metal -lobjc \
+              -o obj/RedwoodMetal src/redwoodmetal.m src/redwooddrawable.m
+          /usr/bin/codesign --force --sign - obj/RedwoodMetal
           # rwsh: the host's remote hand on a device that has no shell.  "fastboot oem sh TEXT"
           # puts TEXT into the running kernel's mailbox (kern.redwood.cmd), rwsh runs it every
           # 250 ms and its output goes to the console log we already capture.  It links libnotify
