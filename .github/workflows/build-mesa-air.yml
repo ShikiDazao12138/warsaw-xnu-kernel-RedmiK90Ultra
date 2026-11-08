@@ -1,0 +1,245 @@
+name: build mesa air
+
+# libredwoodair.dylib -- the Mesa AIR frontend that the Metal driver dlopens to
+# turn a Metal shader into Adreno ir3 machine code.
+#
+# Without it the device still finds the GPU (metal_caps reads vendorName Apple,
+# maxWorkingSetSize 536870912, hasUnifiedMemory yes) and can still create a
+# device, but the first texture that needs a shader aborts in MPSKernel.mm:60
+# and SpringBoard useraborts: a correct home screen whose icons are all black,
+# in a spawn/crash loop 16 rounds long.
+#
+# Nothing Apple's is stored in this repository. The workflow downloads Mesa's
+# own release tarball, applies the patches of hackios-xnu-userland, and compiles
+# against whatever iPhoneOS SDK the runner's Xcode carries.
+#
+# Why arm64e, and why this runner: iOS 26's dyld refuses to load an arm64 image
+# into an arm64e process, and the whole iOS 26 userland of this port is arm64e.
+# Producing an arm64e iOS dylib needs Xcode's clang and ld64 -- the linux
+# cctools inside the hackios-dev container (what mk-mesa.sh uses for the 16.5
+# line) cannot do it. macos-15 with Xcode 26.3 selected gives both, plus
+# -miphoneos-version-min=26.0 which only an iOS 26 SDK accepts.
+#
+# The three upstream programs this reproduces, and why they are split:
+#   PREPARE=1 VERSION=26.2.5 REBASE=26 tools/mk-mesa.sh   unpack + patch, no compile
+#   tools/k90auto/setup-mesa-arm64e.py                    meson setup, arm64e cross file
+#   tools/k90auto/build-air.py                            ninja + codesign, records hashes
+# mk-mesa.sh stops at PREPARE because its patch step wants GNU patch and its
+# compile step wants the container's toolchain; here GNU patch comes from
+# homebrew and the toolchain is Xcode, so one runner does both halves.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-mesa-air.yml'
+
+env:
+  MESA_VERSION: '26.2.5'
+  MESA_SHA256: '794b3d1729075dae7ebd47c7283b7ca0cdb5dec668f7f11cc0a5d82f6138a0a5'
+
+jobs:
+  air:
+    runs-on: macos-15
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.3.app 2>/dev/null || \
+          sudo xcode-select -s /Applications/Xcode_26.2.app 2>/dev/null || true
+          xcodebuild -version
+          echo "iphoneos SDK $(xcrun --sdk iphoneos --show-sdk-version) at $(xcrun --sdk iphoneos --show-sdk-path)"
+
+      - name: Install the build host
+        # bison must be the homebrew one: Mesa's frontend parser needs 3.x and
+        # macOS ships 2.3. gpatch is GNU patch, because mk-mesa.sh's patch loop
+        # uses --batch and --no-backup-if-mismatch, which BSD patch rejects.
+        # meson is pinned to 1.12.1: 26.x requires >= 1.4 and the fork's rebase
+        # notes were taken against 1.12.1.
+        run: |
+          set -euo pipefail
+          brew install bison flex gpatch ninja
+          BISON_DIR=$(brew --prefix bison)/bin
+          FLEX_DIR=$(brew --prefix flex)/bin
+          GPATCH_DIR=$(brew --prefix gpatch)/bin
+          echo "HOST_BIN=$BISON_DIR:$FLEX_DIR:$GPATCH_DIR" >> "$GITHUB_ENV"
+          python3 -m venv /tmp/venv
+          /tmp/venv/bin/pip -q install --upgrade pip
+          /tmp/venv/bin/pip -q install mako pyyaml packaging "meson==1.12.1"
+          /tmp/venv/bin/meson --version
+          PATH="$BISON_DIR:$FLEX_DIR:$GPATCH_DIR:$PATH" gpatch --version | head -1
+
+      - name: Fetch the sources and the patch set
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch k90-port \
+            https://github.com/iola1999/hackios-xnu-userland.git /tmp/u
+          echo "--- 25.0.7 patch set: $(ls /tmp/u/tools/mesa/*.patch | wc -l) files ---"
+          echo "--- rebase-26 layer: $(ls /tmp/u/tools/mesa/rebase-26/*.patch | wc -l) files ---"
+          ls /tmp/u/tools/mesa/rebase-26/
+          echo "--- air frontend: $(ls /tmp/u/tools/mesa/air | wc -l) entries ---"
+          ls /tmp/u/tools/mesa/air | head -40
+
+      - name: Unpack Mesa and apply the patches
+        # The 25.0.7 patches do not all fit 26.2.5; rebase-26/0003-restore-*
+        # re-establishes what they carried. So a dropped hunk is tolerated here
+        # and recorded, exactly as mk-mesa.sh does with REBASE=26, and the .rej
+        # list travels with the artifact -- "which hunk did not reach the
+        # build" has no answer in a digest.
+        run: |
+          set -euo pipefail
+          export PATH="$HOST_BIN:$PATH"
+          mkdir -p /tmp/mesa/out
+          cd /tmp/mesa
+          curl -sSL --fail -o "mesa-$MESA_VERSION.tar.xz" \
+            "https://archive.mesa3d.org/mesa-$MESA_VERSION.tar.xz" || \
+          curl -sSL --fail -o "mesa-$MESA_VERSION.tar.xz" \
+            "https://mesa.freedesktop.org/archive/mesa-$MESA_VERSION.tar.xz"
+          echo "$MESA_SHA256  mesa-$MESA_VERSION.tar.xz" | shasum -a 256 -c -
+          tar xJf "mesa-$MESA_VERSION.tar.xz"
+
+          PATCHLOG=/tmp/mesa/out/patch.log
+          : > "$PATCHLOG"
+          apply() {
+            for p in "$@"; do
+              printf '=== %s\n' "$p" >> "$PATCHLOG"
+              if gpatch -s --batch --no-backup-if-mismatch \
+                   -d "mesa-$MESA_VERSION" -p1 < "$p" >> "$PATCHLOG" 2>&1; then
+                printf 'ok\n' >> "$PATCHLOG"
+              else
+                printf 'DROPPED\n' >> "$PATCHLOG"
+              fi
+            done
+          }
+          apply $(find /tmp/u/tools/mesa -maxdepth 1 -name '*.patch' | LC_ALL=C sort)
+          apply $(find /tmp/u/tools/mesa/rebase-26 -maxdepth 1 -name '*.patch' | LC_ALL=C sort)
+
+          find "mesa-$MESA_VERSION" \( -name '*.rej' -o -name '*.orig' \) -type f \
+            | LC_ALL=C sort > /tmp/mesa/out/patch-rejects.txt
+          echo "--- rejects: $(grep -c . /tmp/mesa/out/patch-rejects.txt || true) ---"
+          cat /tmp/mesa/out/patch-rejects.txt
+          echo "--- dropped hunks: $(grep -c DROPPED "$PATCHLOG" || true) of $(grep -c '^=== ' "$PATCHLOG" || true) patches ---"
+
+          # Ours, kept in the repository, always the current ones.
+          rm -rf "mesa-$MESA_VERSION/src/redwood-drm" "mesa-$MESA_VERSION/src/compiler/air"
+          cp -r /tmp/u/tools/mesa/redwood-drm "mesa-$MESA_VERSION/src/redwood-drm"
+          cp -r /tmp/u/tools/mesa/air "mesa-$MESA_VERSION/src/compiler/air"
+          echo "--- air frontend in tree: $(ls "mesa-$MESA_VERSION/src/compiler/air" | wc -l) entries ---"
+
+      - name: meson setup with an arm64e cross file
+        # The -D list is setup-mesa-arm64e.py's, which is the list the iOS 26
+        # library was measured with -- it differs from mk-mesa.sh's in
+        # shader-cache=enabled, and that difference belongs to this line.
+        # The sed at the end strips the block scalar's indent: a cross file is
+        # an ini and an indented [section] header is a continuation line.
+        run: |
+          set -euo pipefail
+          export PATH="$HOST_BIN:/tmp/venv/bin:$PATH"
+          export PYTHONHASHSEED=0
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          CLANG=$(xcrun --find clang)
+          CLANGXX=$(xcrun --find clang++)
+          AR=$(xcrun --find ar)
+          RANLIB=$(xcrun --find ranlib)
+          STRIP=$(xcrun --find strip)
+          cat > /tmp/mesa/cross.ini <<INI
+          [binaries]
+          bison = '$(brew --prefix bison)/bin/bison'
+          c = ['$CLANG', '-arch', 'arm64e', '-isysroot', '$SDK', '-miphoneos-version-min=26.0']
+          cpp = ['$CLANGXX', '-arch', 'arm64e', '-isysroot', '$SDK', '-miphoneos-version-min=26.0', '-fuse-cxa-atexit']
+          objc = ['$CLANG', '-arch', 'arm64e', '-isysroot', '$SDK', '-miphoneos-version-min=26.0']
+          ar = '$AR'
+          ranlib = '$RANLIB'
+          strip = '$STRIP'
+          pkg-config = '/usr/bin/false'
+
+          [host_machine]
+          system = 'darwin'
+          subsystem = 'ios'
+          cpu_family = 'aarch64'
+          cpu = 'arm64e'
+          endian = 'little'
+
+          [properties]
+          needs_exe_wrapper = true
+          INI
+          sed -i '' 's/^[[:space:]]*//' /tmp/mesa/cross.ini
+          cat /tmp/mesa/cross.ini
+          meson setup /tmp/mesa/build "/tmp/mesa/mesa-$MESA_VERSION" \
+            --cross-file /tmp/mesa/cross.ini \
+            --wrap-mode=nofallback --prefix=/redwood --libdir=lib --buildtype=release \
+            -Db_ndebug=true -Dplatforms= -Dgallium-drivers=softpipe,freedreno -Dfreedreno-kmds=msm \
+            -Dvulkan-drivers= -Dglx=disabled -Degl=disabled -Dgbm=disabled -Dosmesa=true \
+            -Dllvm=disabled -Dshared-glapi=enabled -Dgles1=disabled -Dgles2=enabled -Dopengl=true \
+            -Dzstd=disabled -Dxmlconfig=disabled -Dexpat=disabled -Dshader-cache=enabled \
+            -Dvalgrind=disabled -Dlibunwind=disabled -Dglvnd=disabled -Dvideo-codecs= -Dtools= \
+            -Dgallium-va=disabled -Dlmsensors=disabled -Dbuild-tests=false 2>&1 \
+            | tee /tmp/mesa/out/meson-setup.log
+
+      - name: ninja libredwoodair.dylib
+        # PYTHONHASHSEED is fixed because Mesa's isaspec generator writes
+        # encode.h in set iteration order; without it two builds of the same
+        # tree differ in bytes (build-air.py's note, and the reason a hash here
+        # answers "same file", never "same code").
+        run: |
+          set -euo pipefail
+          export PATH="$HOST_BIN:/tmp/venv/bin:$PATH"
+          export PYTHONHASHSEED=0
+          TARGET=src/gallium/drivers/freedreno/libredwoodair.dylib
+          echo "--- targets that mention redwoodair ---"
+          ninja -C /tmp/mesa/build -t targets all | grep -i redwoodair || true
+          ninja -C /tmp/mesa/build -v "$TARGET" 2>&1 | tee /tmp/mesa/out/ninja.log
+          ls -l "/tmp/mesa/build/$TARGET"
+
+      - name: Name and sign the library the way the device needs
+        # meson writes @rpath; the Metal driver dlopens the absolute path and
+        # libredwoodair.dylib is linked against by install name, so the id has
+        # to be /redwood/lib/libredwoodair.dylib. It is changed before the
+        # signature, because rewriting a Mach-O invalidates one.
+        run: |
+          set -euo pipefail
+          B=/tmp/mesa/build/src/gallium/drivers/freedreno/libredwoodair.dylib
+          O=/tmp/mesa/out/libredwoodair.dylib
+          cp "$B" "$O"
+          install_name_tool -id /redwood/lib/libredwoodair.dylib "$O"
+          /usr/bin/codesign --force --sign - "$O"
+          echo "--- install name ---"
+          otool -D "$O"
+          echo "--- architecture ---"
+          otool -hv "$O" | tail -2
+          echo "--- the interface the driver calls (tools/mesa/air/air_metal.h) ---"
+          nm -gU "$O" | awk '{ print $NF }' | LC_ALL=C sort > /tmp/mesa/out/exports-rwa.txt
+          RWA=$(grep -c '^_rwa_' /tmp/mesa/out/exports-rwa.txt || true)
+          echo "$RWA rwa_* functions"
+          [ "${RWA:-0}" -gt 0 ] || { echo "::error::libredwoodair.dylib exports no rwa_* at all"; exit 1; }
+          [ "$(otool -D "$O" | sed -n 2p)" = /redwood/lib/libredwoodair.dylib ] || \
+            { echo "::error::wrong install name"; exit 1; }
+          /usr/bin/codesign -dv "$O" 2>&1 | head -5
+          shasum -a 256 "$O" | tee /tmp/mesa/out/libredwoodair.sha256
+          ls -l /tmp/mesa/out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libredwoodair-arm64e
+          path: /tmp/mesa/out/
+          if-no-files-found: error
+
+      - name: Leave the library where a Windows host can fetch it
+        # The artifact API wants a token and the build host has none; codeload
+        # does not. So the output also goes to an orphan branch, where a tarball
+        # of that branch is all it takes to bring the dylib home. The branch is
+        # force-updated every round, so it never accumulates builds.
+        run: |
+          set -euo pipefail
+          cd /tmp/mesa/out
+          git init -q
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git checkout -q -b air-artifacts
+          git add -A
+          git commit -qm "libredwoodair: mesa $MESA_VERSION, $(shasum -a 256 libredwoodair.dylib | cut -d' ' -f1)"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push -q -f origin air-artifacts
+          echo "air-artifacts: $(git rev-parse --short HEAD)"
