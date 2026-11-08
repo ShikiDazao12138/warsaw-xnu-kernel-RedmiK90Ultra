@@ -42,8 +42,16 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_26.2.app 2>/dev/null || true
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
+      - uses: actions/checkout@v4
       - name: Fetch userland sources
-        run: git clone --depth 1 --branch k90-port https://github.com/iola1999/hackios-xnu-userland.git /tmp/u
+        run: |
+          git clone --depth 1 --branch k90-port https://github.com/iola1999/hackios-xnu-userland.git /tmp/u
+          # The upstream tree splits src/ into apps/gfx/inject/services/boot/...; the sources
+          # this workflow compiles live in this repository as userland/src (flat), so they are
+          # laid over the clone and win. Without this the compile step looks for
+          # src/input26_service.c, which upstream has at src/services/.
+          cp -R userland/src/. /tmp/u/userland/src/
+          ls /tmp/u/userland/src | head -40
       - name: Compile the arm64e programs
         run: |
           set -e
