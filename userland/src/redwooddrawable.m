@@ -426,6 +426,21 @@ static const struct rwd_format rwd_formats[] = {
 	{ 555, 'w30r', 4, 1, "a ten-bit XR format" },
 };
 
+/*
+ * iOS 26 calls the very same eight-bit BGRA surface '&BGA' once a Metal renderer
+ * owns it: backboardd prints both names in one line when it cannot allocate its
+ * framebuffer ("Failed to allocate [1125 x 2436] &BGA framebuffer
+ * MTLPixelFormatBGRA8Unorm"). The surface is four bytes a pixel either way.
+ * MiniIOSurface.cpp substitutes w30r/l10r/w30R/b3a8 for BGRA but leaves this
+ * one alone, so the import check has to know that the two are one format --
+ * otherwise nextDrawable returns nil and the panel keeps the loader's frame.
+ */
+static inline uint32_t
+rwd_canonical_fourcc(uint32_t got)
+{
+	return got == '&BGA' ? (uint32_t)'BGRA' : got;
+}
+
 int
 rwd_format_of_metal(unsigned metal_pixel_format, uint32_t *fourcc, unsigned *bytes_per_pixel,
 		    char *why, size_t why_size)
@@ -637,7 +652,7 @@ rwd_texture_for_surface(struct rwa_device *mesa_device, void *iosurface, unsigne
 		    id, surface.width, surface.height, want->width, want->height);
 		return NULL;
 	}
-	if (surface.pixelFormat != fourcc) {
+	if (rwd_canonical_fourcc(surface.pixelFormat) != fourcc) {
 		if (is_ycbcr_biplanar && (surface.pixelFormat == '420v' || surface.pixelFormat == '420f')) {
 			/* Accepted bi-planar YCbCr FourCC */
 		} else {

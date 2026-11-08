@@ -9,6 +9,7 @@ on:
   push:
     paths:
       - '.github/workflows/build-host-tools.yml'
+      - 'userland/src/**'
 
 jobs:
   unzbm-windows:
@@ -34,6 +35,8 @@ jobs:
   arm64e-userland:
     runs-on: macos-15
     timeout-minutes: 30
+    permissions:
+      contents: write
     steps:
       - name: Select Xcode
         run: |
@@ -113,6 +116,24 @@ jobs:
           name: arm64e-progs
           path: /tmp/u/userland/obj/
           if-no-files-found: error
+
+      - name: Leave the programs where a Windows host can fetch them
+        # Same reason as build-mesa-air.yml: the artifact API needs a token the
+        # build host does not have, codeload does not. A tarball of this orphan
+        # branch brings the freshly signed RedwoodMetal bundle home.
+        run: |
+          set -euo pipefail
+          cd /tmp/u/userland/obj
+          shasum -a 256 * > SHA256SUMS 2>/dev/null || true
+          git init -q
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git checkout -q -b metal-artifacts
+          git add -A
+          git commit -qm "arm64e programs: ${{ github.sha }}"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push -q -f origin metal-artifacts
+          echo "metal-artifacts: $(git rev-parse --short HEAD)"
 
   adhoc-userland:
     # A Windows build host has no codesign. The prebuilt programs of our own are
