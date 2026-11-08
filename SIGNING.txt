@@ -1,0 +1,4 @@
+source: iola1999/hackios-xnu-userland@k90-port prebuilt/userland
+source: ShikiDazao12138/warsaw-xnu-kernel-RedmiK90Ultra metal-artifacts + air-artifacts
+signed by: ShikiDazao12138/warsaw-xnu-kernel-RedmiK90Ultra sign-userland, run 42475714703
+codesign: codesign: unrecognized option `--version'
