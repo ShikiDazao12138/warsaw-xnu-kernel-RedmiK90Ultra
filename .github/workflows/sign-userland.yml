@@ -1,0 +1,123 @@
+name: sign userland
+
+# Ad-hoc sign the arm64e Mach-O programs we need on the device, then publish
+# them to the "userland-signed" branch. iOS 26 launchd refuses to start a job
+# whose program is not a platform binary, and kern_minimac.c accepts any
+# ad-hoc signed binary for one. Only codesign (macOS) can produce those
+# signatures, so this runs on a macOS runner and nothing else.
+#
+# Deliberately does NOT build RedwoodInstaller.app: upstream's
+# src/build_installer.sh has failed every run so far and it is not needed to
+# get to the lock screen.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sign:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - name: Fetch userland sources (k90-port)
+        run: |
+          set -e
+          git clone --depth 1 --branch k90-port \
+            https://github.com/iola1999/hackios-xnu-userland.git /tmp/ul
+          echo "--- prebuilt/userland ---"
+          ls -l /tmp/ul/prebuilt/userland/ | head -60 || true
+
+      - name: Fetch our own artifacts branches
+        run: |
+          set -e
+          mkdir -p /tmp/ours
+          cd /tmp/ours
+          git init -q .
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          for b in metal-artifacts air-artifacts; do
+            git fetch -q --depth 1 origin "$b" || { echo "no branch $b, skipping"; continue; }
+            mkdir -p "/tmp/art/$b"
+            git --work-tree="/tmp/art/$b" checkout -q FETCH_HEAD -- . || true
+            echo "--- $b ---"
+            ls -l "/tmp/art/$b" | head -40 || true
+          done
+
+      - name: Ad-hoc sign every Mach-O
+        run: |
+          set -e
+          STAGE=/tmp/stage
+          mkdir -p "$STAGE"
+
+          sign_one() {
+            src="$1"; dst="$2"
+            magic=$(od -An -tx1 -N4 "$src" | tr -d ' \n')
+            case "$magic" in
+              cffaedfe|feedfacf|cefaedfe|bebafeca|cafebabe) ;;
+              *) return 1 ;;
+            esac
+            mkdir -p "$(dirname "$dst")"
+            cp "$src" "$dst"
+            chmod u+w "$dst"
+            # keep entitlements if the file already carries some, else plain adhoc
+            if ! /usr/bin/codesign --force --sign - --preserve-metadata=entitlements "$dst" 2>/dev/null; then
+              /usr/bin/codesign --force --sign - "$dst"
+            fi
+            printf '%-46s ' "$(basename "$dst")"
+            /usr/bin/codesign -dv "$dst" 2>&1 | grep -i 'flags=' | head -1 || true
+            return 0
+          }
+
+          count=0
+          if [ -d /tmp/ul/prebuilt/userland ]; then
+            for f in /tmp/ul/prebuilt/userland/*; do
+              [ -f "$f" ] || continue
+              sign_one "$f" "$STAGE/prebuilt/$(basename "$f")" && count=$((count+1)) || echo "skip (not Mach-O): $(basename "$f")"
+            done
+          fi
+
+          for b in metal-artifacts air-artifacts; do
+            [ -d "/tmp/art/$b" ] || continue
+            for f in /tmp/art/"$b"/*; do
+              [ -f "$f" ] || continue
+              case "$(basename "$f")" in SHA256SUMS) continue ;; esac
+              sign_one "$f" "$STAGE/$b/$(basename "$f")" && count=$((count+1)) || echo "skip (not Mach-O): $b/$(basename "$f")"
+            done
+          done
+
+          echo "signed files: $count"
+          if [ "$count" -eq 0 ]; then
+            echo "nothing was signed, refusing to publish"
+            exit 1
+          fi
+
+          cd "$STAGE"
+          find . -type f ! -name SHA256SUMS | sed 's|^\./||' | sort | xargs shasum -a 256 > SHA256SUMS
+          {
+            echo "source: iola1999/hackios-xnu-userland@k90-port prebuilt/userland"
+            echo "source: ${{ github.repository }} metal-artifacts + air-artifacts"
+            echo "signed by: ${{ github.repository }} sign-userland, run ${{ github.run_id }}"
+            echo "codesign: $(codesign --version 2>&1 | head -1)"
+          } > SIGNING.txt
+          echo "--- SHA256SUMS ---"
+          cat SHA256SUMS
+
+      - name: Publish to userland-signed branch
+        run: |
+          set -e
+          cd /tmp/stage
+          git init -q .
+          git config user.name "sign-userland"
+          git config user.email "sign-userland@users.noreply.github.com"
+          git add -A
+          git commit -qm "signed userland: ${{ github.sha }}"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push -q -f origin HEAD:userland-signed
+          echo "userland-signed: $(git rev-parse --short HEAD)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: userland-signed
+          path: /tmp/stage/
+          if-no-files-found: error
