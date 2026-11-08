@@ -67,6 +67,29 @@ jobs:
               -framework Foundation -framework IOKit -framework Metal -lobjc \
               src/redwoodmetal.m src/redwooddrawable.m -o obj/libredwoodmetal.dylib
           /usr/bin/codesign --force --sign - obj/libredwoodmetal.dylib
+          # rwsh: the host's remote hand on a device that has no shell.  "fastboot oem sh TEXT"
+          # puts TEXT into the running kernel's mailbox (kern.redwood.cmd), rwsh runs it every
+          # 250 ms and its output goes to the console log we already capture.  It links libnotify
+          # for "notify NAME"; if the SDK's stub is not there, a dynamic lookup is enough.
+          $CC -O2 -Wall -Wextra src/rwsh.c -o obj/rwsh -lnotify || \
+            $CC -O2 -Wall -Wextra -Wl,-undefined,dynamic_lookup src/rwsh.c -o obj/rwsh
+          # The Metal side.  metal_props is the switch: Metal finds a GPU only by
+          # IOServiceMatching("IOAcceleratorES") + reading MetalPluginName off it, and this
+          # port's service publishes without that property, so nothing in the system walks the
+          # Metal road -- CoreImage then falls back to a software context, which in iOS 26
+          # cannot do the 8bit working format iconservicesagent asks for, and icon artwork
+          # comes out as zero bytes (black icons on a correct home screen).  The flags and
+          # frameworks are upstream build.sh's, unchanged.
+          $CC -O1 -framework CoreFoundation -framework IOKit -o obj/metal_props src/metal_props.c
+          $CC -O1 -framework Foundation -framework IOKit -framework Metal -lobjc \
+              -o obj/metal_dev src/metal_dev.m
+          $CC -O1 -framework Foundation -framework IOKit -framework Metal -lobjc \
+              -o obj/metal_drv_test src/metal_drv_test.m
+          $CC -O1 -framework Foundation -framework IOKit -framework Metal -lobjc \
+              -framework MetalFX -o obj/metal_caps src/metal_caps.m
+          for b in rwsh metal_props metal_dev metal_drv_test metal_caps; do
+            if [ -f "obj/$b" ]; then /usr/bin/codesign --force --sign - "obj/$b"; fi
+          done
           ls -l obj/
           for f in obj/*; do printf '%s ' "$f"; otool -hv "$f" 2>/dev/null | tail -1; done
       - uses: actions/upload-artifact@v4
