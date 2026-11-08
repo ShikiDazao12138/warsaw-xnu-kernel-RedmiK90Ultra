@@ -102,14 +102,32 @@ jobs:
 
           PATCHLOG=/tmp/mesa/out/patch.log
           : > "$PATCHLOG"
+          # One patch is refused on purpose. 0015-ir3-disk-cache-darwin-uuid gives
+          # the ir3 disk cache a Mach-O UUID where a Linux build reads a build-id
+          # note. On 26.2.5 it half-applies: the hunk that rewrites
+          # ir3_disk_cache_init() lands, the later one that deletes the matching
+          # #endif does not, so the file is left with an orphan #endif and no
+          # id_sha1 -- "use of undeclared identifier 'id_sha1'" and "#endif
+          # without #if", the first round's build failure. With -Dshader-cache=
+          # disabled (mk-mesa.sh's own default) there is no disk cache to give a
+          # UUID to, so refusing the patch costs nothing and keeps the file as
+          # 26.2.5 wrote it.
           apply() {
             for p in "$@"; do
-              printf '=== %s\n' "$p" >> "$PATCHLOG"
+              name=$(basename "$p")
+              case "$name" in
+                *ir3-disk-cache*)
+                  printf '=== %s\nSKIPPED (shader cache off)\n' "$p" >> "$PATCHLOG"
+                  echo "skip     $name"
+                  continue ;;
+              esac
               if gpatch -s --batch --no-backup-if-mismatch \
                    -d "mesa-$MESA_VERSION" -p1 < "$p" >> "$PATCHLOG" 2>&1; then
-                printf 'ok\n' >> "$PATCHLOG"
+                echo "ok       $name"
+                printf '=== %s\nok\n' "$p" >> "$PATCHLOG"
               else
-                printf 'DROPPED\n' >> "$PATCHLOG"
+                echo "DROPPED  $name"
+                printf '=== %s\nDROPPED\n' "$p" >> "$PATCHLOG"
               fi
             done
           }
@@ -121,6 +139,12 @@ jobs:
           echo "--- rejects: $(grep -c . /tmp/mesa/out/patch-rejects.txt || true) ---"
           cat /tmp/mesa/out/patch-rejects.txt
           echo "--- dropped hunks: $(grep -c DROPPED "$PATCHLOG" || true) of $(grep -c '^=== ' "$PATCHLOG" || true) patches ---"
+          # What a reject holds is the only record of what did not reach the
+          # build; the paths alone do not say whether it mattered.
+          for r in $(cat /tmp/mesa/out/patch-rejects.txt); do
+            echo "--- $r ---"
+            head -30 "$r"
+          done
 
           # Ours, kept in the repository, always the current ones.
           rm -rf "mesa-$MESA_VERSION/src/redwood-drm" "mesa-$MESA_VERSION/src/compiler/air"
@@ -130,8 +154,13 @@ jobs:
 
       - name: meson setup with an arm64e cross file
         # The -D list is setup-mesa-arm64e.py's, which is the list the iOS 26
-        # library was measured with -- it differs from mk-mesa.sh's in
-        # shader-cache=enabled, and that difference belongs to this line.
+        # library was measured with -- with one deliberate difference:
+        # shader-cache is disabled, as mk-mesa.sh has it. The library this
+        # builds is the AIR frontend, whose job is to compile a shader Metal
+        # hands it; a per-process disk cache of the results is an optimisation
+        # that only exists when 0015-ir3-disk-cache-darwin-uuid applies cleanly,
+        # and on 26.2.5 it does not (see the patch step). Turning the cache off
+        # removes the code path the half-applied patch damaged.
         # The sed at the end strips the block scalar's indent: a cross file is
         # an ini and an indented [section] header is a continuation line.
         run: |
@@ -173,7 +202,7 @@ jobs:
             -Db_ndebug=true -Dplatforms= -Dgallium-drivers=softpipe,freedreno -Dfreedreno-kmds=msm \
             -Dvulkan-drivers= -Dglx=disabled -Degl=disabled -Dgbm=disabled -Dosmesa=true \
             -Dllvm=disabled -Dshared-glapi=enabled -Dgles1=disabled -Dgles2=enabled -Dopengl=true \
-            -Dzstd=disabled -Dxmlconfig=disabled -Dexpat=disabled -Dshader-cache=enabled \
+            -Dzstd=disabled -Dxmlconfig=disabled -Dexpat=disabled -Dshader-cache=disabled \
             -Dvalgrind=disabled -Dlibunwind=disabled -Dglvnd=disabled -Dvideo-codecs= -Dtools= \
             -Dgallium-va=disabled -Dlmsensors=disabled -Dbuild-tests=false 2>&1 \
             | tee /tmp/mesa/out/meson-setup.log
