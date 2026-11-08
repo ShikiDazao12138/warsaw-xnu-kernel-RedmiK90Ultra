@@ -35,9 +35,18 @@ on:
   push:
     branches: [main, master, k90-port]
     paths:
+      # ath12k 也在这个仓库里：tools/mk-ath12k.sh 拿 wifi/lx 那层去编，编出来的
+      # out/ath12k.o 由 build-macos.sh 链进内核。这些目录变了产物就变，必须重编。
       - 'xnu26/**'
       - 'xnu/**'
+      - 'wifi/**'
+      - 'tools/**'
+      - 'xnu-deps/**'
       - '.github/workflows/build-kernel.yml'
+
+# 失败时要把现场提交回仓库（见最后一步），所以要 contents: write。
+permissions:
+  contents: write
 
 jobs:
   kernel:
@@ -138,7 +147,8 @@ jobs:
       # 代价：下载 Linux 7.0.14 与 FreeBSD 15.1 源码（约 350 MB），编译 ath12k 的 60 个文件。
       - name: 取 ath12k 与 FreeBSD LinuxKPI（Wi-Fi 驱动）
         run: |
-          time bash tools/mk-ath12k.sh
+          set -o pipefail
+          time bash tools/mk-ath12k.sh 2>&1 | tee "$RUNNER_TEMP/ath12k.log"
           LX=xnu-deps/build/ath12k/out/ath12k.o
           [ -f "$LX" ] || { echo "::error::没有编出 ath12k.o"; exit 1; }
           ls -la "$LX"
@@ -150,7 +160,8 @@ jobs:
           MACHINE: ${{ inputs.machine || 'BCM2837' }}
           KERNEL_CONFIG: ${{ inputs.kconfig || 'DEVELOPMENT' }}
         run: |
-          time bash xnu26/build-macos.sh
+          set -o pipefail
+          time bash xnu26/build-macos.sh 2>&1 | tee "$RUNNER_TEMP/kernel1.log"
           # 真实产物路径是 BUILD/obj/<KCONFIG>_ARM64_<MACHINE>/mach.development.bcm2837，这里直接找出来
           find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.*' -type f -exec ls -la {} \;
 
@@ -161,7 +172,8 @@ jobs:
         env:
           MACHINE: ${{ inputs.machine || 'BCM2837' }}
         run: |
-          time bash tools/mk-wlfw-ath12k.sh
+          set -o pipefail
+          time bash tools/mk-wlfw-ath12k.sh 2>&1 | tee "$RUNNER_TEMP/qmi.log"
           H=$(find xnu-src -name 'redwood_wlfw_ath12k.h' | head -1)
           [ -n "$H" ] || { echo "::error::没有生成 redwood_wlfw_ath12k.h"; exit 1; }
           ls -la "$H"
@@ -172,7 +184,8 @@ jobs:
           MACHINE: ${{ inputs.machine || 'BCM2837' }}
           KERNEL_CONFIG: ${{ inputs.kconfig || 'DEVELOPMENT' }}
         run: |
-          time bash xnu26/build-macos.sh
+          set -o pipefail
+          time bash xnu26/build-macos.sh 2>&1 | tee "$RUNNER_TEMP/kernel2.log"
           find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.*' -type f -exec ls -la {} \;
           K=$(find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.development.bcm2837' -type f | head -1)
           echo "--- 确认 ath12k 真的在里面（不应再出现 not built in）---"
@@ -199,3 +212,45 @@ jobs:
           if-no-files-found: error
           compression-level: 9
           retention-days: 30
+
+      # 本机（Windows）只能访问 api.github.com：Actions 的日志端点会 307 到需要私有凭据的
+      # blob 存储，拿不到任何日志，失败了只能盲猜。所以让失败现场自己回到仓库里，
+      # 用 Contents API 读 ci/last-failure.txt 即可。ci/** 不在 push 的 paths 里，不会自激。
+      - name: 失败时把诊断写回仓库
+        if: failure()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          mkdir -p ci
+          {
+            echo "sha:  $GITHUB_SHA"
+            echo "run:  $GITHUB_RUN_ID  attempt $GITHUB_RUN_ATTEMPT"
+            echo "time: $(date -u)"
+            echo "job:  $GITHUB_JOB  runner $(uname -m)"
+            for L in "$RUNNER_TEMP"/ath12k.log "$RUNNER_TEMP"/kernel1.log "$RUNNER_TEMP"/qmi.log "$RUNNER_TEMP"/kernel2.log; do
+              [ -f "$L" ] || continue
+              echo; echo "===== $(basename "$L"): $(wc -l < "$L") 行 ====="
+              echo "--- 命中错误关键字的行（末 60 条）---"
+              grep -n -iE "error:|错误|FAILED|No such file|cannot |undefined|not found|does not carry|nothing defines" "$L" | tail -60
+              echo "--- 尾部 100 行 ---"
+              tail -100 "$L"
+            done
+            echo; echo "===== ath12k 逐文件编译错误（obj/*.err）====="
+            for f in xnu-deps/build/ath12k/obj/*.err; do
+              [ -s "$f" ] || continue
+              echo "--- $(basename "$f")"
+              grep -m10 -A3 "error:" "$f"
+            done
+            echo; echo "===== ath12k 目录现场 ====="
+            ls -la xnu-deps/build/ath12k | head -25
+            ls -la xnu-deps/build/ath12k/out 2>/dev/null | head -25
+            echo "stubs: $(wc -l < xnu-deps/build/ath12k/out/stubs.txt 2>/dev/null)"
+          } > ci/last-failure.txt 2>&1
+          echo "诊断 $(wc -c < ci/last-failure.txt) 字节"
+          git config user.name  "warsaw-ci"
+          git config user.email "ci@warsaw.local"
+          git add -f ci/last-failure.txt
+          git commit -m "ci: 失败现场 run=$GITHUB_RUN_ID" && git push origin HEAD:main \
+            || echo "::warning::诊断没能提交（可能是只读 token）"
