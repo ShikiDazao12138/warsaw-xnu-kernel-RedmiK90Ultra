@@ -213,6 +213,30 @@ jobs:
           compression-level: 9
           retention-days: 30
 
+      # The build host can reach api.github.com and codeload, but the artifact
+      # API needs a token it does not have. Leave the kernel on an orphan branch
+      # so a Git Blob read (or a codeload tarball) brings it home.
+      - name: 把内核放到 Windows 主机能取到的分支
+        run: |
+          set -euo pipefail
+          K=$(find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.development.bcm2837' -type f | head -1)
+          [ -n "$K" ] || { echo "no mach.development.bcm2837"; exit 1; }
+          O=/tmp/kernel-out
+          mkdir -p "$O"
+          cp "$K" "$O/kernel-ath12k.bin"
+          shasum -a 256 "$O/kernel-ath12k.bin" > "$O/kernel-ath12k.sha256"
+          ls -l "$O"
+          cd "$O"
+          git init -q
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git checkout -q -b kernel-artifacts
+          git add -A
+          git commit -qm "kernel: ${{ github.sha }}"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push -q -f origin kernel-artifacts
+          echo "kernel-artifacts: $(git rev-parse --short HEAD)"
+
       # 本机（Windows）只能访问 api.github.com：Actions 的日志端点会 307 到需要私有凭据的
       # blob 存储，拿不到任何日志，失败了只能盲猜。所以让失败现场自己回到仓库里，
       # 用 Contents API 读 ci/last-failure.txt 即可。ci/** 不在 push 的 paths 里，不会自激。

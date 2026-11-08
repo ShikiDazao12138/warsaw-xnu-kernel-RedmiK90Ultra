@@ -474,7 +474,12 @@ surfaceCreate(OSDictionary * props, IOReturn * error)
 	 * surfaces of once it draws with a GPU's renderer (OpenGL ES, userland/src/eagl.c) instead
 	 * of its software one. One plane of BGRA here too; the framebuffer shows nothing else.
 	 */
-	if (format == 'b3a8') {
+	/* iOS 26's Metal renderer names this same screen surface '&BGA'. It comes
+	 * with IOSurfacePlaneInfo, so a surface left with planeCount != 0 is skipped
+	 * by MiniIOMobileFramebuffer's swap -- drawLayer() is never called, the dirty
+	 * row hash sees no source rows and the panel keeps the loader's frame while
+	 * the compositor goes on swapping at full rate. Treat it exactly like b3a8. */
+	if (format == 'b3a8' || format == '&BGA') {
 		format = 'BGRA';
 		onePlane = true;
 	}
