@@ -415,15 +415,19 @@ static const struct rwd_format rwd_formats[] = {
 	{  80, 'BGRA', 4, 0, "MTLPixelFormatBGRA8Unorm" },
 	{  81, 'BGRA', 4, 0, "MTLPixelFormatBGRA8Unorm_sRGB" },
 	{  90, 'R10k', 4, 0, "a ten-bit RGB format" },
-	{  94, 'l10r', 4, 1, "a ten-bit RGB format" },
+	/* MiniIOSurface.cpp turns 94 and the whole XR family into ordinary BGRA
+	 * surfaces of the same geometry, so the FourCC the descriptor has to expect
+	 * is BGRA too -- not the ten-bit name it was made with. substituted=1 here
+	 * would refuse the import outright (rwd_format_of_metal returns -1). */
+	{  94, 'BGRA', 4, 0, "a ten-bit RGB format" },
 	{ 115, 'RGhA', 8, 0, "MTLPixelFormatRGBA16Float" },
 	{ 500, '420v', 1, 0, "MTLPixelFormatYCBCR8_420_2P" },
-	{ 550, 'b3a8', 4, 1, "a ten-bit XR format" },
-	{ 551, 'b3a8', 4, 1, "a ten-bit XR format" },
-	{ 552, 'w40a', 4, 1, "a ten-bit XR format" },
-	{ 553, 'w40a', 4, 1, "a ten-bit XR format" },
-	{ 554, 'w30r', 4, 1, "a ten-bit XR format" },
-	{ 555, 'w30r', 4, 1, "a ten-bit XR format" },
+	{ 550, 'BGRA', 4, 0, "a ten-bit XR format" },
+	{ 551, 'BGRA', 4, 0, "a ten-bit XR format" },
+	{ 552, 'BGRA', 4, 0, "a ten-bit XR format" },
+	{ 553, 'BGRA', 4, 0, "a ten-bit XR format" },
+	{ 554, 'BGRA', 4, 0, "a ten-bit XR format" },
+	{ 555, 'BGRA', 4, 0, "a ten-bit XR format" },
 };
 
 /*
@@ -436,9 +440,19 @@ static const struct rwd_format rwd_formats[] = {
  * otherwise nextDrawable returns nil and the panel keeps the loader's frame.
  */
 static inline uint32_t
-rwd_canonical_fourcc(uint32_t got)
+rwd_canonical_fourcc(uint32_t got, uint32_t want)
 {
-	return got == '&BGA' ? (uint32_t)'BGRA' : got;
+	if (got == '&BGA' && want == 'BGRA') {
+		return want;
+	}
+	/* CoreAnimation makes its two-byte masks as 'LA08' and asks Metal for
+	 * RG8Unorm (30/31). Both are one plane of two bytes a pixel; the shader
+	 * decides what the channels mean. backboardd's framebuffer is this
+	 * surface, so refusing it keeps the whole panel on the loader's frame. */
+	if (got == 'LA08' && want == 'RG08') {
+		return want;
+	}
+	return got;
 }
 
 int
@@ -652,7 +666,7 @@ rwd_texture_for_surface(struct rwa_device *mesa_device, void *iosurface, unsigne
 		    id, surface.width, surface.height, want->width, want->height);
 		return NULL;
 	}
-	if (rwd_canonical_fourcc(surface.pixelFormat) != fourcc) {
+	if (rwd_canonical_fourcc(surface.pixelFormat, fourcc) != fourcc) {
 		if (is_ycbcr_biplanar && (surface.pixelFormat == '420v' || surface.pixelFormat == '420f')) {
 			/* Accepted bi-planar YCbCr FourCC */
 		} else {
