@@ -5,6 +5,7 @@ static struct {
 	__typeof__(&rwa_buffer_copy) buffer_copy;
 	__typeof__(&rwa_texture_copy) texture_copy;
 	__typeof__(&rwa_texture_generate_mipmaps) texture_generate_mipmaps;
+	__typeof__(&rwa_texture_view) texture_view;
 	__typeof__(&rwa_texture_from_buffer) texture_from_buffer;
 	__typeof__(&rwa_buffer_textures_refresh) buffer_textures_refresh;
 	struct rwa_device *(*device_open)(char *, size_t);
@@ -87,6 +88,9 @@ mesa_available(void)
 	*(void **)&mesa.texture_copy = dlsym(mesa.handle, "rwa_texture_copy");
 	*(void **)&mesa.texture_generate_mipmaps = dlsym(mesa.handle, "rwa_texture_generate_mipmaps");
 	*(void **)&mesa.texture_from_buffer = dlsym(mesa.handle, "rwa_texture_from_buffer");
+	/* Optional, like the blits: a library without it is one whose texture views cannot be
+	 * made, and the texture says so when it is asked rather than refusing to load. */
+	*(void **)&mesa.texture_view = dlsym(mesa.handle, "rwa_texture_view");
 	*(void **)&mesa.buffer_textures_refresh = dlsym(mesa.handle, "rwa_buffer_textures_refresh");
 	*(void **)&mesa.device_open = dlsym(mesa.handle, "rwa_device_open");
 	*(void **)&mesa.device_close = dlsym(mesa.handle, "rwa_device_close");

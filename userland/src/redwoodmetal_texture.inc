@@ -253,9 +253,13 @@ region_words_suspect(const void *texture, const uint64_t *word, const void *byte
 	return YES;
 }
 
-/* A view of a texture is another texture over the same memory, and the compiler library has
- * no call for that yet; nil is the honest answer, and it is better than a view that aliases
- * nothing. */
+/* A view of a texture is another texture over the same memory, and the compiler library
+ * has the call for it: rwa_texture_view shares the resource and counts its own reference,
+ * so the view is destroyed on its own and outliving the parent is legal for as long as the
+ * parent is alive. Everything but the format, the type and the run of levels is the
+ * parent's -- including the array length, because the backend's view covers every slice of
+ * the resource it shares, and reporting fewer than the shader can be handed would be a
+ * different kind of wrong than reporting the truth. */
 - (id)newTextureViewWithPixelFormat:(NSUInteger)format { (void)format; return nil; }
 
 /*
@@ -272,10 +276,61 @@ region_words_suspect(const void *texture, const uint64_t *word, const void *byte
 			     levels:(NSRange)levels
 			     slices:(NSRange)slices
 {
-	(void)format; (void)type; (void)levels; (void)slices;
-	RW_ONCE("a texture view is not implemented (the compiler library has no "
-		"call that makes a second texture over the same memory); nil\n");
-	return nil;
+	char why[256] = { 0 };
+	struct rwa_texture *view;
+	struct rwa_texture_shape shape;
+	unsigned first = (unsigned)levels.location;
+	unsigned count = (unsigned)levels.length;
+
+	if (mesa.texture_view == NULL) {
+		RW_ONCE("a texture view was asked of a compiler library with no "
+			"rwa_texture_view, so it is older than this driver; nil\n");
+		return nil;
+	}
+	if (count == 0 || first + count > (unsigned)_shape.mip_levels) {
+		rw_print("a view of levels %u+%u of a texture with %u was asked for and "
+		         "there is no such run of levels; nil\n",
+			 first, count, (unsigned)_shape.mip_levels);
+		return nil;
+	}
+	view = mesa.texture_view(_texture, (unsigned)format, first, count, why, sizeof(why));
+	if (view == NULL) {
+		rw_print("a texture view: %s\n", why);
+		return nil;
+	}
+	if (slices.location != 0) {
+		/* The backend's view covers every slice of the resource it shares, so a
+		 * view that starts at a slice is answered over all of them: the format and
+		 * the levels are right and the first slice is not, which is what the log
+		 * says rather than a picture that is quietly the wrong one. */
+		rw_print("a view from slice %u: the shared resource starts at zero, so the "
+		         "view covers every slice\n", (unsigned)slices.location);
+	}
+	shape = _shape;
+	shape.pixel_format = (unsigned)format;
+	shape.type = (unsigned)type != 0 ? (unsigned)type : _shape.type;
+	shape.mip_levels = count;
+	shape.width = _shape.width >> first;
+	if (shape.width == 0) {
+		shape.width = 1;
+	}
+	if (_shape.height != 0) {
+		shape.height = _shape.height >> first;
+		if (shape.height == 0) {
+			shape.height = 1;
+		}
+	}
+	if (_shape.depth != 0) {
+		shape.depth = _shape.depth >> first;
+		if (shape.depth == 0) {
+			shape.depth = 1;
+		}
+	}
+	return [[RedwoodMetalTexture alloc] initWithRedwoodDevice:_owner
+							 texture:view
+							   shape:&shape
+						       iosurface:NULL
+							   plane:0];
 }
 - (id)newTextureViewWithPixelFormat:(NSUInteger)format
 			textureType:(NSUInteger)type
