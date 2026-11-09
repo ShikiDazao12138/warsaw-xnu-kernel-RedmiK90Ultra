@@ -157,9 +157,12 @@ protocol_declares(const char *name, SEL selector, struct objc_method_description
 {
 	NSUInteger slices = sliceCount ? sliceCount : 1;
 	NSUInteger levels = levelCount ? levelCount : 1;
-	NSUInteger width = [source width];
-	NSUInteger height = [source height];
-	NSUInteger depth = [source depth];
+	/* Typed through id<MTLTexture>: sending -width to a bare id returns id, and C99+ makes
+	 * that pointer-to-integer conversion an error, not a warning (-Wint-conversion). */
+	id<MTLTexture> texture = (id<MTLTexture>)source;
+	NSUInteger width = texture.width;
+	NSUInteger height = texture.height;
+	NSUInteger depth = texture.depth;
 	MTLOrigin corner = { 0, 0, 0 };
 
 	for (NSUInteger slice = 0; slice < slices; slice++) {

@@ -29,6 +29,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+/* The definition is next to the helper include at the bottom of this file, while the five
+ * call sites are above it: without this declaration C99 rejects the calls outright
+ * ("call to undeclared function 'sb26_suspend_wallpaper'", build 2026-11-09 21:4x). */
+static void sb26_suspend_wallpaper(void);
+
 extern const void *_dyld_get_shared_cache_range(size_t *);
 extern id MTLCreateSystemDefaultDevice(void);
 void sb26_install_layer_dump(void);   /* inject_sb26_layers.c */
