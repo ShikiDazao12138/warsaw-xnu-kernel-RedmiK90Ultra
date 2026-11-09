@@ -59,6 +59,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 本机（Windows）要能拿 RELEASE 内核做对照实验，产物名随 kconfig 走：
+      # DEVELOPMENT -> mach.development.bcm2837, RELEASE -> mach.release.bcm2837
+      - name: 决定内核产物名
+        run: |
+          KC=$(printf '%s' "${{ inputs.kconfig || 'DEVELOPMENT' }}" | tr 'A-Z' 'a-z')
+          echo "PROD=mach.${KC}.bcm2837" >> "$GITHUB_ENV"
+          echo "KERNEL_CONFIG=${{ inputs.kconfig || 'DEVELOPMENT' }}" >> "$GITHUB_ENV"
+          echo "product = mach.${KC}.bcm2837"
+
       # macos-15 的默认 Xcode 是 16.4，而 12377 出自 macOS 26.5 那一代：换到 26.3 再开工。
       # （runner 镜像里 26.3/26.2/26.1.1/26.0.1 都在 /Applications，见 macos-15-Readme.md）
       - name: 选用 Xcode 26.3
@@ -187,14 +196,14 @@ jobs:
           set -o pipefail
           time bash xnu26/build-macos.sh 2>&1 | tee "$RUNNER_TEMP/kernel2.log"
           find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.*' -type f -exec ls -la {} \;
-          K=$(find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.development.bcm2837' -type f | head -1)
+          K=$(find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name "$PROD" -type f | head -1)
           echo "--- 确认 ath12k 真的在里面（不应再出现 not built in）---"
           strings -a "$K" | grep -c 'ath12k' || echo "0 条 ath12k 字符串"
           strings -a "$K" | grep -m2 'not built in' || echo "✓ 没有 not built in"
 
       - name: 产物清单与校验
         run: |
-          K=$(find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.development.bcm2837' -type f | head -1)
+          K=$(find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name "$PROD" -type f | head -1)
           [ -n "$K" ] || { echo "没有编出 mach.development.bcm2837"; exit 1; }
           echo "产物: $K"
           ls -la "$K"
@@ -207,8 +216,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mach.development.bcm2837
-          path: xnu-src/xnu-12377.121.6/BUILD/obj/**/mach.development.bcm2837
+          name: ${{ env.PROD }}
+          path: xnu-src/xnu-12377.121.6/BUILD/obj/**/${{ env.PROD }}
           if-no-files-found: error
           compression-level: 9
           retention-days: 30
@@ -219,8 +228,8 @@ jobs:
       - name: 把内核放到 Windows 主机能取到的分支
         run: |
           set -euo pipefail
-          K=$(find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name 'mach.development.bcm2837' -type f | head -1)
-          [ -n "$K" ] || { echo "no mach.development.bcm2837"; exit 1; }
+          K=$(find xnu-src/xnu-12377.121.6/BUILD/obj -maxdepth 3 -name "$PROD" -type f | head -1)
+          [ -n "$K" ] || { echo "no $PROD"; exit 1; }
           O=/tmp/kernel-out
           mkdir -p "$O"
           cp "$K" "$O/kernel-ath12k.bin"
