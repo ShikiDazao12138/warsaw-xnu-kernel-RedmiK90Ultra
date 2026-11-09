@@ -180,6 +180,76 @@ protocol_declares(const char *name, SEL selector, struct objc_method_description
 	}
 }
 
+/* Bytes the processor wrote into a buffer, into a texture: the other direction of the copy
+ * above, and the one Mercury's poster pass was failing on (2026-11-09 22:0x log: 13 lines of
+ * "blit selector copyFromBuffer:...toTexture:... is not implemented").  forwardInvocation
+ * makes an unimplemented blit a no-op, so picture data never reached its texture.
+ *
+ * There is no GPU-side call for this in the contract, but both ends are reachable from the
+ * processor: the buffer's memory is mapped (-contents), and mesa.texture_write writes rows
+ * into a texture (the call -replaceRegion:... makes).  Every layer of the copy is one such
+ * write.  It runs at encode time instead of being recorded because the texels have to be
+ * there before whatever samples them runs, and no commit has happened yet. */
+- (void)copyFromBuffer:(id)sourceBuffer sourceOffset:(NSUInteger)sourceOffset
+      sourceBytesPerRow:(NSUInteger)sourceBytesPerRow
+    sourceBytesPerImage:(NSUInteger)sourceBytesPerImage
+             sourceSize:(MTLSize)size
+              toTexture:(id)destinationTexture
+       destinationSlice:(NSUInteger)destinationSlice
+       destinationLevel:(NSUInteger)destinationLevel
+      destinationOrigin:(MTLOrigin)destinationOrigin
+{
+	if (_ended) {
+		[NSException raise:NSInternalInconsistencyException format:@"copy after endEncoding"];
+		return;
+	}
+	if (![sourceBuffer isKindOfClass:[RedwoodMetalBuffer class]] ||
+	    ![destinationTexture isKindOfClass:[RedwoodMetalTexture class]] ||
+	    [sourceBuffer device] != [self device] || [destinationTexture device] != [self device]) {
+		[self rejectCopy:"a buffer-to-texture copy needs a buffer and a texture of this device"];
+		return;
+	}
+	void *base = [(RedwoodMetalBuffer *)sourceBuffer contents];
+	if (base == NULL) {
+		[self rejectCopy:"this buffer has no memory the processor can read"];
+		return;
+	}
+	if (sourceBytesPerRow == 0) {
+		[self rejectCopy:"a copy with no bytes per row has no rows this driver can walk"];
+		return;
+	}
+	if (size.width == 0 || size.height == 0 || size.depth == 0) {
+		return;
+	}
+	if (size.width > UINT32_MAX || size.height > UINT32_MAX || size.depth > UINT32_MAX ||
+	    destinationOrigin.x > UINT32_MAX || destinationOrigin.y > UINT32_MAX ||
+	    destinationOrigin.z > UINT32_MAX || destinationSlice > UINT32_MAX ||
+	    destinationLevel > UINT32_MAX) {
+		[self rejectCopy:"texture copy parameters exceed the 32-bit resource contract"];
+		return;
+	}
+
+	const char *rows = (const char *)base + sourceOffset;
+	size_t imageBytes = sourceBytesPerImage ? (size_t)sourceBytesPerImage
+	                                        : (size_t)sourceBytesPerRow * size.height;
+	unsigned origin[3] = { (unsigned)destinationOrigin.x, (unsigned)destinationOrigin.y,
+	                       (unsigned)destinationOrigin.z };
+	unsigned extent[3] = { (unsigned)size.width, (unsigned)size.height, 1 };
+	char why[192];
+
+	for (unsigned slice = 0; slice < (unsigned)size.depth; slice++) {
+		const void *layer = rows + (size_t)slice * imageBytes;
+		if (mesa.texture_write([(RedwoodMetalTexture *)destinationTexture mesaTexture],
+		                       (unsigned)destinationLevel,
+		                       (unsigned)destinationSlice + slice,
+		                       origin, extent, layer, (size_t)sourceBytesPerRow,
+		                       why, sizeof(why)) != 0) {
+			[self rejectCopy:why];
+			return;
+		}
+	}
+}
+
 - (void)generateMipmapsForTexture:(id)texture
 {
 	if (![texture isKindOfClass:[RedwoodMetalTexture class]] || [texture device] != [self device]) {
