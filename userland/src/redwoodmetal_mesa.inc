@@ -5,7 +5,12 @@ static struct {
 	__typeof__(&rwa_buffer_copy) buffer_copy;
 	__typeof__(&rwa_texture_copy) texture_copy;
 	__typeof__(&rwa_texture_generate_mipmaps) texture_generate_mipmaps;
-	__typeof__(&rwa_texture_view) texture_view;
+	/* Optional, like the blits, and spelled out rather than copied from the header with
+	 * __typeof__: the contract header this driver compiles against comes from the compiler
+	 * library's own tree, and a build that does not have to agree on one declaration to
+	 * compile is one that cannot fail over a call neither side uses until it is asked for. */
+	struct rwa_texture *(*texture_view)(struct rwa_texture *, unsigned, unsigned, unsigned,
+					    char *, size_t);
 	__typeof__(&rwa_texture_from_buffer) texture_from_buffer;
 	__typeof__(&rwa_buffer_textures_refresh) buffer_textures_refresh;
 	struct rwa_device *(*device_open)(char *, size_t);
