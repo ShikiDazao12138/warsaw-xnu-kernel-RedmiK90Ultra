@@ -30,6 +30,12 @@
 #endif
 
 extern char *proc_name_address(struct proc *p);
+/* proc_pid() is declared in bsd/sys/proc.h, which this file does not include: a
+ * DEVELOPMENT kernel saw it through the header chain, a RELEASE one does not
+ * (build 42606913594: "call to undeclared function 'proc_pid'").  Declare it here
+ * so the config stops mattering; the signature is bsd/sys/proc.h's 
+ * "extern int proc_pid(proc_t);" and proc_t is struct proc *. */
+extern int proc_pid(struct proc *p);
 
 void user_exception_trace(exception_type_t exception, mach_exception_data_t code, mach_msg_type_number_t count, thread_t thread);
 
