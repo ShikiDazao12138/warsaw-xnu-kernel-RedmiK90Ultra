@@ -126,6 +126,13 @@ struct rwa_compute_info {
 	 * every field above keeps the offset this file already reads -- and this file and
 	 * the library still have to be rebuilt together. */
 	unsigned argbuf_mask;
+
+	/* Nonzero for a kernel whose result does not depend on the threadgroup size
+	 * (air_shader_info.group_free in air_metal.h): any size that divides the grid
+	 * computes the same, so a dispatch that would need a partial threadgroup is run
+	 * with a smaller one instead. Appended, as the library appends it, so every
+	 * field above keeps the offset this file already reads. */
+	unsigned group_free;
 };
 struct rwa_texture_shape {
 	unsigned pixel_format, type, width, height, depth;
@@ -999,6 +1006,7 @@ struct gem_close { uint32_t handle, pad; };
 				info:(const struct rwa_compute_info *)info
 			  descriptor:(id)descriptor;
 - (struct rwa_compute *)compute;
+- (BOOL)threadgroupSizeMayDiffer;
 @end
 
 @interface RedwoodMetalCommandQueue : _MTLCommandQueue
@@ -2946,6 +2954,11 @@ struct gem_close { uint32_t handle, pad; };
 - (struct rwa_compute *)compute
 {
 	return _compute;
+}
+
+- (BOOL)threadgroupSizeMayDiffer
+{
+	return _info.group_free != 0;
 }
 
 /* The three the base class answers with nothing at all (docs/metal.md 10.8), so they can
@@ -4921,28 +4934,76 @@ controlPointIndexBufferOffset:(NSUInteger)controlPointOffset
 	[work release];
 }
 
-/* Metal counts threads here and threadgroups above; the division is Metal's own, and a
- * grid that does not divide evenly is refused rather than rounded, because rounding runs
- * threads the application did not ask for. */
+/* The largest threadgroup size, no bigger than the one asked for, that divides the grid:
+ * a kernel whose result does not depend on the threadgroup size (group_free) computes
+ * the same in more, smaller groups, which is what a GPU without partial threadgroups
+ * needs to run a grid that does not divide. 3602 threads by 64 is 1801 groups of 2
+ * (space::updateCylinderVertexPositions in MercuryPosterExtension's Space.metallib, the
+ * wallpaper's first refused dispatch). */
+static unsigned
+dividing_threadgroup(unsigned threads, unsigned want)
+{
+	unsigned size = threads < want ? threads : want;
+
+	while (size > 1 && threads % size != 0) {
+		size--;
+	}
+	return size;
+}
+
+/* Metal counts threads here and threadgroups above; the division is Metal's own. A grid
+ * that does not divide evenly would need a partial threadgroup, which freedreno does not
+ * have. A kernel whose result does not depend on the threadgroup size is dispatched with
+ * a smaller one instead -- each dimension down to the largest size that divides it, the
+ * groups up to match -- and every other kernel is still refused rather than rounded,
+ * because rounding would run threads the application did not ask for. */
 - (void)dispatchThreads:(MTLSize)threads threadsPerThreadgroup:(MTLSize)size
 {
+	unsigned count[3] = { (unsigned)threads.width, (unsigned)threads.height,
+	                      (unsigned)threads.depth };
+	unsigned group[3] = { (unsigned)size.width, (unsigned)size.height,
+	                      (unsigned)size.depth };
+	unsigned wanted[3] = { group[0], group[1], group[2] };
 	MTLSize groups;
+	BOOL lowered = NO;
 
-	if (size.width == 0 || size.height == 0 || size.depth == 0 ||
-	    threads.width % size.width != 0 || threads.height % size.height != 0 ||
-	    threads.depth % size.depth != 0) {
-		rw_print("%lux%lux%lu threads do not divide into groups of "
-		         "%lux%lux%lu, and this driver does not have the partial-group support "
-		         "that would need\n", (unsigned long)threads.width,
+	if (group[0] == 0 || group[1] == 0 || group[2] == 0 ||
+	    count[0] == 0 || count[1] == 0 || count[2] == 0) {
+		rw_print("a dispatch of %lux%lux%lu threads in groups of %lux%lux%lu has no "
+		         "threads in it, and it is dropped\n", (unsigned long)threads.width,
 		         (unsigned long)threads.height, (unsigned long)threads.depth,
 		         (unsigned long)size.width, (unsigned long)size.height,
 		         (unsigned long)size.depth);
 		return;
 	}
-	groups.width = threads.width / size.width;
-	groups.height = threads.height / size.height;
-	groups.depth = threads.depth / size.depth;
-	[self dispatchThreadgroups:groups threadsPerThreadgroup:size];
+	for (int i = 0; i < 3; i++) {
+		if (count[i] % group[i] == 0) {
+			continue;
+		}
+		if (_pipeline == nil || ![_pipeline threadgroupSizeMayDiffer]) {
+			rw_print("%lux%lux%lu threads do not divide into groups of "
+			         "%lux%lux%lu, and this kernel's result depends on the "
+			         "threadgroup size, so it cannot be lowered to one that "
+			         "divides it\n", (unsigned long)threads.width,
+			         (unsigned long)threads.height, (unsigned long)threads.depth,
+			         (unsigned long)size.width, (unsigned long)size.height,
+			         (unsigned long)size.depth);
+			return;
+		}
+		group[i] = dividing_threadgroup(count[i], group[i]);
+		lowered = YES;
+	}
+	if (lowered) {
+		RW_ONCE("a threadgroup of %ux%ux%u was lowered to %ux%ux%u to divide a grid of "
+		        "%ux%ux%u threads: this kernel's result does not depend on it\n",
+		        wanted[0], wanted[1], wanted[2], group[0], group[1], group[2],
+		        count[0], count[1], count[2]);
+	}
+	groups.width = count[0] / group[0];
+	groups.height = count[1] / group[1];
+	groups.depth = count[2] / group[2];
+	[self dispatchThreadgroups:groups
+	         threadsPerThreadgroup:MTLSizeMake(group[0], group[1], group[2])];
 }
 
 - (void)useResource:(id)resource usage:(NSUInteger)usage { (void)resource; (void)usage; }
