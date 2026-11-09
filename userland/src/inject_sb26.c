@@ -188,14 +188,18 @@ unlock_once(const char *why)
     id manager = lock_screen_manager();
     if (!manager) return -1;
     if (!((BOOL (*)(id, SEL))objc_msgSend)(manager, locked)) {
-        notify_post("com.redwood.wallpaper.suspend");
+        /* Throttling removed 2026-11-09: nothing in this tree ever posts the resume, and a
+	     * suspended poster is never submitted again (the log shows "mercury poster submissions
+	     * suspended" and no resumed).  Leave the display link alone. */
         return 0;
     }
     BOOL answer = ((BOOL (*)(id, SEL, long, id))objc_msgSend)(manager, unlock_ui, UNLOCK_SOURCE_COVER_SHEET, nil);
     int locked_after = ((BOOL (*)(id, SEL))objc_msgSend)(manager, locked);
     fprintf(stderr, "sb26: unlock %s: answer=%d locked_after=%d\n", why, answer, locked_after);
     if (!locked_after) {
-        notify_post("com.redwood.wallpaper.suspend");
+        /* Throttling removed 2026-11-09: nothing in this tree ever posts the resume, and a
+	     * suspended poster is never submitted again (the log shows "mercury poster submissions
+	     * suspended" and no resumed).  Leave the display link alone. */
         sb26_schedule_stepped_refresh();
     }
     return 1;
@@ -332,7 +336,9 @@ boot_unlock(void *context)
     if (state == 1) boot_unlock_seen_locked = 1;
     if (state == 0 && boot_unlock_seen_locked) {
         fprintf(stderr, "sb26: boot unlock done after %lu attempts\n", (unsigned long)attempt);
-        notify_post("com.redwood.wallpaper.suspend");
+        /* Throttling removed 2026-11-09: nothing in this tree ever posts the resume, and a
+	     * suspended poster is never submitted again (the log shows "mercury poster submissions
+	     * suspended" and no resumed).  Leave the display link alone. */
         sb26_schedule_stepped_refresh();
         return;
     }
@@ -352,7 +358,9 @@ sb26_hook_unlock_ui(id self, SEL cmd, long source, id options)
     BOOL ans = orig_unlock_ui ? orig_unlock_ui(self, cmd, source, options) : NO;
     SEL locked = sel_registerName("isUILocked");
     if (!((BOOL (*)(id, SEL))objc_msgSend)(self, locked)) {
-        notify_post("com.redwood.wallpaper.suspend");
+        /* Throttling removed 2026-11-09: nothing in this tree ever posts the resume, and a
+	     * suspended poster is never submitted again (the log shows "mercury poster submissions
+	     * suspended" and no resumed).  Leave the display link alone. */
         sb26_schedule_stepped_refresh();
     }
     return ans;
@@ -378,7 +386,9 @@ install_unlock(void)
         (void)t;
         if (unlock_once("notification") == 0) {
             fprintf(stderr, "sb26: unlock notification: not locked\n");
-            notify_post("com.redwood.wallpaper.suspend");
+            /* Throttling removed 2026-11-09: nothing in this tree ever posts the resume, and a
+	     * suspended poster is never submitted again (the log shows "mercury poster submissions
+	     * suspended" and no resumed).  Leave the display link alone. */
             sb26_schedule_stepped_refresh();
         }
     });
