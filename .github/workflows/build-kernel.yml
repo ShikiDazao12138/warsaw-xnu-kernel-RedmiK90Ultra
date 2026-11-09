@@ -265,6 +265,8 @@ jobs:
             for L in "$RUNNER_TEMP"/ath12k.log "$RUNNER_TEMP"/kernel1.log "$RUNNER_TEMP"/qmi.log "$RUNNER_TEMP"/kernel2.log; do
               [ -f "$L" ] || continue
               echo; echo "===== $(basename "$L"): $(wc -l < "$L") 行 ====="
+              echo "--- 所有 error: 行（前 300 条）---"
+              grep -n " error: " "$L" | head -300
               echo "--- 命中错误关键字的行（末 60 条）---"
               grep -n -iE "error:|错误|FAILED|No such file|cannot |undefined|not found|does not carry|nothing defines" "$L" | tail -60
               echo "--- 尾部 100 行 ---"
