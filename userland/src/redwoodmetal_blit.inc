@@ -145,6 +145,38 @@ protocol_declares(const char *name, SEL selector, struct objc_method_description
 	[work release];
 }
 
+/* The whole-texture form of the copy above: Mercury's poster pass ends with this one
+ * ("blit selector copyFromTexture:...sliceCount:levelCount: is not implemented" in the
+ * 2026-11-09 20:2x boot log), and forwardInvocation makes an unimplemented blit a no-op,
+ * so the poster never leaves its render target.  It is the region form with the region
+ * and the loops filled in; every level is a full-size copy of that level. */
+- (void)copyFromTexture:(id)source sourceSlice:(NSUInteger)sourceSlice
+	      sourceLevel:(NSUInteger)sourceLevel toTexture:(id)destination
+	 destinationSlice:(NSUInteger)destinationSlice destinationLevel:(NSUInteger)destinationLevel
+	     sliceCount:(NSUInteger)sliceCount levelCount:(NSUInteger)levelCount
+{
+	NSUInteger slices = sliceCount ? sliceCount : 1;
+	NSUInteger levels = levelCount ? levelCount : 1;
+	NSUInteger width = [source width];
+	NSUInteger height = [source height];
+	NSUInteger depth = [source depth];
+	MTLOrigin corner = { 0, 0, 0 };
+
+	for (NSUInteger slice = 0; slice < slices; slice++) {
+		for (NSUInteger level = 0; level < levels; level++) {
+			NSUInteger shift = sourceLevel + level;
+			MTLSize size = { width >> shift ? width >> shift : 1,
+			                 height >> shift ? height >> shift : 1,
+			                 depth >> shift ? depth >> shift : 1 };
+			[self copyFromTexture:source
+			          sourceSlice:sourceSlice + slice sourceLevel:shift sourceOrigin:corner
+			           sourceSize:size toTexture:destination
+			     destinationSlice:destinationSlice + slice destinationLevel:destinationLevel + level
+			     destinationOrigin:corner];
+		}
+	}
+}
+
 - (void)generateMipmapsForTexture:(id)texture
 {
 	if (![texture isKindOfClass:[RedwoodMetalTexture class]] || [texture device] != [self device]) {

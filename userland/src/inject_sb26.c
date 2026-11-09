@@ -188,14 +188,14 @@ unlock_once(const char *why)
     id manager = lock_screen_manager();
     if (!manager) return -1;
     if (!((BOOL (*)(id, SEL))objc_msgSend)(manager, locked)) {
-        notify_post("com.redwood.wallpaper.suspend");
+        sb26_suspend_wallpaper();
         return 0;
     }
     BOOL answer = ((BOOL (*)(id, SEL, long, id))objc_msgSend)(manager, unlock_ui, UNLOCK_SOURCE_COVER_SHEET, nil);
     int locked_after = ((BOOL (*)(id, SEL))objc_msgSend)(manager, locked);
     fprintf(stderr, "sb26: unlock %s: answer=%d locked_after=%d\n", why, answer, locked_after);
     if (!locked_after) {
-        notify_post("com.redwood.wallpaper.suspend");
+        sb26_suspend_wallpaper();
         sb26_schedule_stepped_refresh();
     }
     return 1;
@@ -332,7 +332,7 @@ boot_unlock(void *context)
     if (state == 1) boot_unlock_seen_locked = 1;
     if (state == 0 && boot_unlock_seen_locked) {
         fprintf(stderr, "sb26: boot unlock done after %lu attempts\n", (unsigned long)attempt);
-        notify_post("com.redwood.wallpaper.suspend");
+        sb26_suspend_wallpaper();
         sb26_schedule_stepped_refresh();
         return;
     }
@@ -352,7 +352,7 @@ sb26_hook_unlock_ui(id self, SEL cmd, long source, id options)
     BOOL ans = orig_unlock_ui ? orig_unlock_ui(self, cmd, source, options) : NO;
     SEL locked = sel_registerName("isUILocked");
     if (!((BOOL (*)(id, SEL))objc_msgSend)(self, locked)) {
-        notify_post("com.redwood.wallpaper.suspend");
+        sb26_suspend_wallpaper();
         sb26_schedule_stepped_refresh();
     }
     return ans;
@@ -378,7 +378,7 @@ install_unlock(void)
         (void)t;
         if (unlock_once("notification") == 0) {
             fprintf(stderr, "sb26: unlock notification: not locked\n");
-            notify_post("com.redwood.wallpaper.suspend");
+            sb26_suspend_wallpaper();
             sb26_schedule_stepped_refresh();
         }
     });
@@ -825,6 +825,35 @@ __attribute__((used, section("__DATA,__interpose"))) static const struct {
 
 #include "inject_sb26_airdrop.inc"
 #include "inject_sb26_uninstall.inc"
+
+/* A suspend with no resume leaves Mercury's display link paused for good, and the wallpaper
+ * with it: the boot log of 2026-11-09 20:2x prints "pb26: mercury poster submissions
+ * suspended" and never "resumed", because this tree posts com.redwood.wallpaper.suspend in
+ * five places and nowhere posts the resume.  Each suspend now arms one a few seconds later;
+ * a newer suspend cancels the older one, so a burst of unlocks still settles back. */
+static _Atomic unsigned sb26_suspend_generation;
+
+static void
+sb26_resume_wallpaper_if_latest(unsigned generation)
+{
+	if (atomic_load(&sb26_suspend_generation) != generation) {
+		return;
+	}
+	notify_post("com.redwood.wallpaper.resume");
+	fprintf(stderr, "sb26: wallpaper resumed %u\n", generation);
+}
+
+static void
+sb26_suspend_wallpaper(void)
+{
+	unsigned generation = atomic_fetch_add(&sb26_suspend_generation, 1) + 1;
+
+	sb26_suspend_wallpaper();
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 4 * NSEC_PER_SEC),
+	    dispatch_get_main_queue(), ^{
+		sb26_resume_wallpaper_if_latest(generation);
+	});
+}
 
 static void
 sb26_trigger_poweroff(id self, SEL _cmd, id arg1, id arg2)
