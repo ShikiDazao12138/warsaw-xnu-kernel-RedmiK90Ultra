@@ -262,6 +262,11 @@ protocol_declares(const char *name, SEL selector, struct objc_method_description
 	 */
 	RedwoodMetalWork *work = [[RedwoodMetalWork alloc] init];
 	work->copyKind = RW_COPY_MIPMAP;
+	/* One texture, and it has to be owned by the work: the record retains textures[0 ..
+	 * textureCount), and rw_run_copy draws the mip chain at commit time, long after this
+	 * call returns (upstream's SM-03 makes the same point). With the count left at zero the
+	 * texture was not retained and the downsample ran against whatever came back. */
+	work->textureCount = 1;
 	work->textures[0] = texture;
 	[_commandBuffer recordWork:work];
 	[work release];
