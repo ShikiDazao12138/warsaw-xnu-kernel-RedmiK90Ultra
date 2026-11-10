@@ -62,6 +62,10 @@ void redwood_virtio_input_init(void);   /* boot-arg virtio_input=1: QEMU's virti
 void redwood_goodix_init(void);         /* boot-arg touchscreen=1: the phone's Goodix or FocalTech touch screen */
 void redwood_buttons_init(void);        /* boot-arg buttons=1: the phone's power and volume keys */
 void redwood_ufs_init(void);           /* ufs=2 to xnuloader: the phone's storage, read only, through the loader (ufs_shared_pa=) */
+/* The same devices, set up early enough to be the root: rd=ufs_darwin (called from bsd_init, before vfs_mountroot). */
+void redwood_ufs_root_start(void);
+/* Publishes the IOKit service IOFindBSDRoot() matches by BSD name; it carries BSD Major/Minor, no I/O. */
+void RedwoodUFSDiskPublish(const char *name, uint64_t major, uint64_t minor, uint64_t bytes);
 void redwood_ufs_report(const char *when); /* where reading the storage has spent its time so far */
 bool redwood_ufs_dev(dev_t dev);           /* one of the storage's devices */
 void redwood_battery_init(void);        /* boot-arg battery=1: Qualcomm UEFI charger state shared by xnuloader */
