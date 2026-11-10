@@ -19,6 +19,8 @@
 extern "C" void RedwoodBTStart(const char * bsdname, const uint8_t * address);
 extern "C" void RedwoodBTSetAddress(const uint8_t * address);
 extern "C" void RedwoodDiskStart(uint64_t size_bytes);
+extern "C" void RedwoodUFSDiskPublish(const char * bsdname, uint64_t bmajor, uint64_t bminor,
+    uint64_t bytes);
 
 class RedwoodBT : public IOService
 {
@@ -377,5 +379,65 @@ RedwoodDiskStart(uint64_t size_bytes)
 			publish_volume(container, "disk1s3", "Preboot", "Preboot", 0x10,
 			    "494F5332-3650-5245-424F-4F54564F4C03", sz, true);
 		}
+	}
+}
+
+/*
+ * The IOKit face of a disk that is a partition of the phone's storage: nothing but the name and
+ * the device numbers. IOFindBSDRoot() (iokit/bsddev/IOKitBSDInit.cpp) matches it by BSD name,
+ * reads BSD Major/Minor off it, and hands vfs_mountroot() that dev_t; the block device itself is
+ * the bdevsw of bsd/dev/redwood_ufs.c, whose reads go through the loader's page. Published before
+ * vfs_mountroot() so that rd=ufs_darwin finds it -- hence no devfs node and no I/O here.
+ */
+void
+RedwoodUFSDiskPublish(const char * bsdname, uint64_t bmajor, uint64_t bminor, uint64_t bytes)
+{
+	IOService * platform = IOService::getPlatform();
+	RedwoodDisk * disk = OSTypeAlloc(RedwoodDisk);
+	OSString * s;
+	OSNumber * n;
+
+	if (platform == NULL || disk == NULL || !disk->init()) {
+		OSSafeReleaseNULL(disk);
+		IOLog("RedwoodDisk: cannot create '%s'\n", bsdname);
+		return;
+	}
+	if ((s = OSString::withCString(bsdname)) != NULL) {
+		disk->setProperty("BSD Name", s);
+		s->release();
+	}
+	if ((n = OSNumber::withNumber(bmajor, 32)) != NULL) {
+		disk->setProperty("BSD Major", n);
+		n->release();
+	}
+	if ((n = OSNumber::withNumber(bminor, 32)) != NULL) {
+		disk->setProperty("BSD Minor", n);
+		n->release();
+	}
+	if ((n = OSNumber::withNumber(bytes, 64)) != NULL) {
+		disk->setProperty("Size", n);
+		n->release();
+	}
+	if ((n = OSNumber::withNumber(4096ULL, 32)) != NULL) {
+		disk->setProperty("Block Size", n);
+		disk->setProperty("Preferred Block Size", n);
+		n->release();
+	}
+	if ((s = OSString::withCString("Apple_APFS")) != NULL) {
+		disk->setProperty("Content", s);
+		s->release();
+	}
+	disk->setProperty("Whole", true);
+	disk->setProperty("Leaf", false);
+	disk->setProperty("Internal", true);
+	disk->setProperty("IOBuiltin", true);
+	disk->setProperty("Writable", false);
+
+	if (bt_publish(disk, platform, bsdname) == NULL) {
+		IOLog("RedwoodDisk: '%s' did not start\n", bsdname);
+	} else {
+		IOLog("RedwoodDisk: published '%s' (BSD Major %llu, Minor %llu, %llu bytes)\n",
+		    bsdname, (unsigned long long)bmajor, (unsigned long long)bminor,
+		    (unsigned long long)bytes);
 	}
 }
