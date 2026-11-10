@@ -16,7 +16,7 @@ index ffe7ce093987..f5b257d423e0 100644
  #include <vm/vm_kern.h>                 /* for kmem_suballoc() */
  #include <sys/proc_uuid_policy.h>       /* proc_uuid_policy_init() */
  #include <netinet/flow_divert.h>        /* flow_divert_init() */
-@@ -457,7 +464,15 @@ bsd_rooted_ramdisk(void)
+@@ -457,7 +464,20 @@ bsd_rooted_ramdisk(void)
  		panic("failed to allocate devpath string!");
  	}
  
