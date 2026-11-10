@@ -19,6 +19,25 @@ ufs_read_mailbox(uint32_t part, uint64_t offset, uint8_t *dst, uint64_t len)
 			return ENOMEM;
 		}
 	}
+	/*
+	 * A line every so often, and every one of the first reads issued with preemption disabled:
+	 * those are the ones a filesystem mounted on the storage makes, and when a boot stops dead
+	 * the last of these lines is what says whether it stopped in a read or after one.  The
+	 * loader's log carries 32 KB, so this stays a trickle and not a flood.
+	 */
+	{
+		static uint32_t reads, off_prints;
+
+		reads++;
+		if (get_preemption_level() != 0 && off_prints < 8) {
+			off_prints++;
+			printf("ufs: read %u with preemption disabled: part %u offset %llu len %llu\n",
+			    reads, part, offset, len);
+		} else if ((reads & 0xff) == 0) {
+			printf("ufs: reads so far %u (part %u, offset %llu, len %llu)\n",
+			    reads, part, offset, len);
+		}
+	}
 	lck_spin_lock(&ufs_page_lock);
 	if (ufshc_list_in()) {
 		/* this kernel's own transfer list is in the controller: UEFI's driver must not be asked to ring */

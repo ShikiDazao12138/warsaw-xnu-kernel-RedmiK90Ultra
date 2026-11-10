@@ -299,6 +299,20 @@ adreno8_rsc_read(void)
 	}
 	adreno8_get(&rsc, "irq enable", 0xd00);
 	adreno8_get(&rsc, "irq status", 0xd04);
+	/*
+	 * The rest is a read-only census of the TCS registers, dozens of lines of it.  On the phone
+	 * it is what fills the loader's 32 KB log before user space has said anything, so it is
+	 * behind adreno8_rsc=1: the lines are wanted when this part is being brought up, not when
+	 * something later in the boot is.
+	 */
+	{
+		uint32_t verbose = 0;
+
+		(void)PE_parse_boot_argn("adreno8_rsc", &verbose, sizeof(verbose));
+		if (verbose == 0) {
+			return true;
+		}
+	}
 	for (unsigned n = 0; n < 8; n++) {
 		uint32_t base = 0xd00 + n * 0x2a0;
 		uint32_t control = major >= 3 ? 0x24 : 0x14;
