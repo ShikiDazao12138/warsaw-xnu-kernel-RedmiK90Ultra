@@ -997,15 +997,31 @@ SYSCTL_QUAD(_kern_redwood, OID_AUTO, ufs_native_fallbacks, CTLFLAG_RD | CTLFLAG_
 
 /* ---- bringing it up ---- */
 
+static bool ufs_root_started;
+static uint64_t ufs_page_pa;            /* the loader's page, as it was on the command line */
+
+/*
+ * The disk rd=ufs_darwin boots from.
+ *
+ * vfs_mountroot() runs in bsd_init() *before* devfs and before every device initialiser, so a root
+ * on the phone's storage has to be there earlier than the rest of this driver: the loader's page
+ * mapped, the block devices numbered, and an IOKit service named after the partition that
+ * IOFindBSDRoot() can match (it takes BSD Major/Minor from it and hands the dev_t to the mount).
+ * No devfs node is needed for that: the mount opens the device by number.
+ *
+ * Idempotent, and redwood_ufs_init() calls it too: the /dev nodes and the disk stand-ins come
+ * later, from there.
+ */
 void
-redwood_ufs_init(void)
+redwood_ufs_root_start(void)
 {
 	uint64_t pa = 0, buffer_pa;
-	uint32_t check = 0, made = 0;
 	vm_offset_t base;
 
+	if (ufs_root_started) {
+		return;
+	}
 	if (!PE_parse_boot_argn("ufs_shared_pa", &pa, sizeof(pa)) || pa == 0) {
-		RedwoodDiskStart(0);
 		return;                 /* the loader was not asked for ufs=2: there is nothing to read through */
 	}
 	base = ml_io_map_unmappable((vm_offset_t)(pa & ~(UFS_PAGE - 1)),
@@ -1017,6 +1033,7 @@ redwood_ufs_init(void)
 		    pa, ufs_page->magic, ufs_page->version, ufs_page->size);
 		return;
 	}
+	ufs_page_pa = pa;
 	ufs_parts = ufs_page->parts;
 	ufs_buffer_size = ufs_page->buffer_size;
 	buffer_pa = ufs_page->buffer_pa;
@@ -1029,6 +1046,43 @@ redwood_ufs_init(void)
 	ufs_cmajor = ufs_bmajor < 0 ? -1 : cdevsw_add_with_bdev(-1, &ufs_cdevsw, ufs_bmajor);
 	if (ufs_cmajor < 0) {
 		printf("ufs: no device numbers to be had\n");
+		return;
+	}
+	for (uint32_t i = 0; i < ufs_parts; i++) {
+		ufs_bsize[i] = ufs_page->part[i].block_size;
+		if (ufs_page->part[i].flags & BLOCK_PART_UNIT) {
+			continue;
+		}
+		if (strcmp((const char *)ufs_page->part[i].name, "darwin") == 0) {
+			ufs_darwin_part = (int)i;
+			ufs_darwin_bytes = ufs_part_bytes(i);
+		}
+		if (strcmp((const char *)ufs_page->part[i].name, "darwin_var") == 0) {
+			ufs_darwin_var_part = (int)i;
+			ufs_darwin_var_bytes = ufs_part_bytes(i);
+		}
+	}
+	ufs_ready = true;
+	ufs_root_started = true;
+
+	if (ufs_darwin_part >= 0) {
+		RedwoodUFSDiskPublish("ufs_darwin", (uint64_t)ufs_bmajor, (uint64_t)ufs_darwin_part,
+		    ufs_darwin_bytes);
+		printf("ufs: root disk: ufs_darwin is major %d minor %d, %llu bytes\n",
+		    ufs_bmajor, ufs_darwin_part, ufs_darwin_bytes);
+	} else {
+		printf("ufs: root disk: the loader's table has no darwin partition\n");
+	}
+}
+
+void
+redwood_ufs_init(void)
+{
+	uint32_t check = 0, made = 0;
+
+	redwood_ufs_root_start();
+	if (!ufs_ready) {
+		RedwoodDiskStart(0);
 		return;
 	}
 	for (uint32_t i = 0; i < ufs_parts; i++) {
@@ -1059,7 +1113,7 @@ redwood_ufs_init(void)
 	RedwoodDiskStart(128000000000ULL);
 	redwood_create_disk_nodes(ufs_bmajor, ufs_cmajor, ufs_darwin_part, ufs_darwin_var_part);
 	printf("ufs: %u partitions of the phone's storage as /dev/ufs_NAME and /dev/rufs_NAME, read only, "
-	    "through the loader's page at %llx and its %u KB buffer\n", made, pa, ufs_buffer_size >> 10);
+	    "through the loader's page at %llx and its %u KB buffer\n", made, ufs_page_pa, ufs_buffer_size >> 10);
 
 	/*
 	 * ufs_write=1: /dev/rufs_dsu_store takes writes, if the loader offers it: it lists the store
