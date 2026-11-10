@@ -57,6 +57,7 @@
 
 extern vm_offset_t ml_io_map_unmappable(vm_offset_t phys_addr, vm_size_t size, unsigned int flags);
 extern void IOSleep(unsigned int milliseconds);
+extern void delay_for_interval(uint32_t interval, uint32_t scale_factor);
 extern void loader_return(void);        /* osfmk/arm64/loader_return.c */
 extern void FlushPoC_DcacheRegion(vm_offset_t va, size_t length);   /* osfmk/arm64/caches_asm.s */
 
@@ -163,6 +164,15 @@ static uint64_t ufs_native_fallbacks, ufs_mailbox_refused;
 
 static LCK_GRP_DECLARE(ufs_lck_grp, "redwood-ufs");
 static LCK_MTX_DECLARE(ufs_lock, &ufs_lck_grp);
+/*
+ * The lock on the loader's one request slot, held across a request and its answer.
+ *
+ * A spin lock and not a mutex: a filesystem mounted on a partition of the storage reads blocks
+ * with preemption disabled (that is how the root is mounted when rd=ufs_darwin), and taking a
+ * mutex there panics -- "Attempt to take mutex ... with preemption disabled".  A request is
+ * answered in tens of microseconds, so spinning is what this costs anyway.
+ */
+static LCK_SPIN_DECLARE(ufs_page_lock, &ufs_lck_grp);
 /* One writer at a time; never held while the mailbox is, nor while user memory is touched. */
 static LCK_MTX_DECLARE(ufs_write_mtx, &ufs_lck_grp);
 
@@ -344,7 +354,8 @@ ufs_request(uint32_t op, uint32_t part, uint64_t lba, uint64_t count, uint8_t *d
 			__builtin_arm_yield();
 			continue;
 		}
-		IOSleep(1);
+		/* a busy wait, never a sleep: this is reached with preemption disabled (root on the flash) */
+		delay_for_interval(1, NSEC_PER_MSEC);
 		if (++waited_ms > UFS_TIMEOUT_MS) {
 			/* no answer: the loader is gone or stuck; nothing more is asked of it */
 			printf("ufs: no answer from the loader to request %u in %u s: the storage is off from now on\n",

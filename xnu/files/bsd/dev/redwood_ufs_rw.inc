@@ -19,14 +19,14 @@ ufs_read_mailbox(uint32_t part, uint64_t offset, uint8_t *dst, uint64_t len)
 			return ENOMEM;
 		}
 	}
-	lck_mtx_lock(&ufs_lock);
+	lck_spin_lock(&ufs_page_lock);
 	if (ufshc_list_in()) {
 		/* this kernel's own transfer list is in the controller: UEFI's driver must not be asked to ring */
 		if (ufs_mailbox_refused++ < 4) {
 			printf("ufs: %s: not asked of the loader while this kernel's own transfer list is in\n",
 			    ufs_page->part[part].name);
 		}
-		lck_mtx_unlock(&ufs_lock);
+		lck_spin_unlock(&ufs_page_lock);
 		return EIO;
 	}
 	while (len > 0 && error == 0) {
@@ -52,7 +52,7 @@ ufs_read_mailbox(uint32_t part, uint64_t offset, uint8_t *dst, uint64_t len)
 		dst += take;
 		len -= take;
 	}
-	lck_mtx_unlock(&ufs_lock);
+	lck_spin_unlock(&ufs_page_lock);
 	return error;
 }
 
@@ -145,7 +145,7 @@ ufs_write(uint32_t part, uint64_t offset, const uint8_t *src, uint64_t len)
 			return ufshc_write(ufs_lun[part], ufs_lun_offset[part] + offset, src, len);
 		}
 		per = ufs_buffer_size / nbs;
-		lck_mtx_lock(&ufs_lock);
+		lck_spin_lock(&ufs_page_lock);
 		while (len > 0 && error == 0) {
 			uint64_t count = len / nbs;
 			if (count > per) {
@@ -156,7 +156,7 @@ ufs_write(uint32_t part, uint64_t offset, const uint8_t *src, uint64_t len)
 			src += count * nbs;
 			len -= count * nbs;
 		}
-		lck_mtx_unlock(&ufs_lock);
+		lck_spin_unlock(&ufs_page_lock);
 		if (error != 0) {
 			ufs_write_errors++;
 		}
@@ -201,14 +201,14 @@ ufs_write(uint32_t part, uint64_t offset, const uint8_t *src, uint64_t len)
 		if (count > per) {
 			count = per;
 		}
-		lck_mtx_lock(&ufs_lock);
+		lck_spin_lock(&ufs_page_lock);
 		if (ufshc_list_in()) {
 			/* it did not go out after all: UEFI's driver must not be asked to ring */
 			error = EIO;
 		} else {
 			error = ufs_request(BLOCK_OP_WRITE, part, offset / nbs, count, NULL, src);
 		}
-		lck_mtx_unlock(&ufs_lock);
+		lck_spin_unlock(&ufs_page_lock);
 		offset += count * nbs;
 		src += count * nbs;
 		len -= count * nbs;
