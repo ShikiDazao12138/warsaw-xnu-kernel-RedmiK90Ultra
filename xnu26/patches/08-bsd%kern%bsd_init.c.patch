@@ -30,12 +30,14 @@ index ffe7ce093987..f5b257d423e0 100644
  		if (strncmp(dev_path, RAMDEV, strlen(RAMDEV)) == 0) {
  			is_ramdisk = true;
  		}
-@@ -498,7 +510,7 @@ bsd_init(void)
+@@ -498,7 +510,9 @@ bsd_init(void)
  	check_for_failure_injection(XNU_STAGE_BSD_INIT_START);
  #endif
  
 -#define DEBUG_BSDINIT 0
 +#define DEBUG_BSDINIT 1 /* bring-up: trace bsd_init steps (only visible with -enable_kprintf_spam) */
++
++	redwood_ufs_root_start();       /* a root disk on the phone's storage: rd=ufs_darwin */
  
  #if DEBUG_BSDINIT
  #define bsd_init_kprintf(x, ...) kprintf("bsd_init: " x, ## __VA_ARGS__)
